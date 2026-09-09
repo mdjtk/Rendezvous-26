@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+    <meta name="theme-color" content="#051910" />
+    <meta
+      name="description"
+      content="Published result posters from Rendezvous '26 — streamed live as juries sign them off."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @layer base {
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          overscroll-behavior: none;
+        }
+      }
+      ::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+    <title>Results — Rendezvous '26</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body
+    class="bg-background font-body-md text-body-md text-on-background relative selection:bg-primary-container selection:text-on-primary-container min-h-screen"
+  >
+    <div class="ambient-bg" aria-hidden="true"></div>
+    
+    <header
+      class="fixed top-0 w-full z-50  shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      <div
+        class="h-20 w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop flex items-center justify-between gap-space-md relative">
+        <a href="index.html" class="flex items-center gap-space-sm min-w-0" aria-label="Rendezvous '26 home">
+          <img src="assets/img/Logo-.png" alt="" class="h-8 w-8 sm:h-9 sm:w-9 flex-none object-contain">
+          <img src="assets/img/rendezvous.png" alt="Rendezvous '26"
+            class="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+        </a>
+
+        <div class="flex items-center gap-space-sm flex-none">
+          <a
+            class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
+            href="team-points.html">
+            <span class="material-symbols-outlined text-[16px]">token</span>
+            <span>TEAM POINTS</span>
+          </a>
+          <a class="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:scale-105 transition-transform"
+            href="admin.html" aria-label="Admin portal">
+            <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+          </a>
+          <button type="button" id="nav-toggle"
+            class="lg:hidden flex w-10 h-10 rounded-lg bg-surface-container-high/80 text-on-surface hover:text-primary items-center justify-center"
+            aria-label="Toggle menu" aria-expanded="false">
+            <span class="material-symbols-outlined text-[22px]">menu</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="w-full pt-20 bg-transparent min-h-[calc(100vh-80px)]">
+      <section
+        class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop py-space-4xl relative"
+      >
+        <div class="max-w-7xl mx-auto">
+          <div class="max-w-2xl">
+            <div
+              class="inline-flex items-center gap-space-xs font-label-code text-label-code uppercase tracking-widest text-secondary mb-space-xs"
+            >
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+              </span>
+              <span>Live Published Results</span>
+            </div>
+            <h1
+              class="font-headline-lg text-headline-lg font-bold text-on-background uppercase tracking-tight"
+            >
+              Result Posters
+            </h1>
+            <p class="font-body-md text-body-md text-on-surface-variant max-w-lg mt-space-xs">
+              Results stream in live as the juries sign them off. Open any poster to view it in
+              full.
+            </p>
+</div>
+          <div class="result-toolbar">
+            <label class="result-search" for="result-search">
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">search</span>
+              <input
+                id="result-search"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Search your name or a category…"
+              />
+              <span id="result-search-clear" class="result-search-clear" role="button" tabindex="0" aria-label="Clear search">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+              </span>
+            </label>
+            <div id="filters" class="chip-row" aria-label="Filter results by category"></div>
+          </div>
+          <div id="content"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="hidden lg:flex fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-[60]" aria-label="Quick links">
+      <div class="pill-nav">
+        <a href="index.html">
+          <span class="material-symbols-outlined text-[16px]">home</span>
+          <span>Home</span>
+        </a>
+        <a href="schedule.html">
+          <span class="material-symbols-outlined text-[16px]">calendar_month</span>
+          <span>Schedule</span>
+        </a>
+        <a href="gallery.html">
+          <span class="material-symbols-outlined text-[16px]">photo_library</span>
+          <span>Gallery</span>
+        </a>
+        <a href="team-points.html">
+          <span class="material-symbols-outlined text-[16px]">token</span>
+          <span>Points</span>
+        </a>
+        
+      </div>
+    </nav>
+
+    <footer class="w-full bg-surface-container-lowest/90 backdrop-blur-2xl py-space-2xl mt-space-4xl border-t border-white/5">
+      <div class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-space-xl mb-space-xl">
+          <div class="space-y-space-sm">
+            <div class="flex items-center gap-space-sm">
+              <img src="assets/img/Logo-.png" alt="" class="h-6 w-6 flex-none object-contain">
+              <img src="assets/img/rendezvous.png" alt="Rendezvous '26" class="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+            </div>
+            <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed max-w-xs">
+              An avant-garde scientific confluence by Jamia Madeenathunnoor, Poonoor, Calicut.
+            </p>
+          </div>
+
+          <div class="space-y-space-xs">
+            <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Explore</h4>
+            <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
+              <li><a class="hover:text-primary transition-colors" href="index.html">Home</a></li>
+              <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
+              <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
+              <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
+              <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
+
+            </ul>
+          </div>
+
+          <div class="space-y-space-xs">
+            <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Quick Links</h4>
+            <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
+              <li><a class="hover:text-primary transition-colors" href="admin.html">Admin</a></li>
+              <li><span class="text-on-surface-variant">SEPT 12–13, 2026</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-body-sm text-body-sm border-t border-white/5">
+          <p>© <span id="year"></span> Rendezvous '26 · Jamia Madeenathunnoor. All rights reserved.</p>
+          <p class="font-label-code text-label-code">SEPT 12–13</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/results.js"></script>
+    <script>
+      window.RV26.UI.initShell();
+    </script>
+  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-6"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a><a href="team-points.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">token</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Points</span></a><a href="admin.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">person</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Admin</span></a></div></nav>
+</body>
+</html>

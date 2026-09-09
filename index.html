@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <meta name="theme-color" content="#051910" />
+  <meta name="description"
+    content="The 26th edition of the flagship Life Festival at Jamia Madeenathunnoor - Decoding Phytolore." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="shortcut icon" href="assets/img/Logo-.png" type="image/x-icon">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+  <style>
+    @layer base {
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        overscroll-behavior: none;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+  <title>Rendezvous '26 - Decoding Phytolore</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body
+  class="bg-background font-body-md text-body-md text-on-background relative selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+  <div class="ambient-bg" aria-hidden="true"></div>
+  <div id="loader" role="status" aria-label="Loading">
+    <div class="loader-logo">
+      <img src="assets/img/Logo-.png" alt="Rendezvous '26" />
+      <span class="loader-word">Rendezvous '26 <br> Baithul Izza Life Festival</span>
+    </div>
+  </div>
+
+  <header
+    class="fixed top-0 w-full z-50  shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+    <div
+      class="h-20 w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop flex items-center justify-between gap-space-md relative">
+      <a href="index.html" class="flex items-center gap-space-sm min-w-0" aria-label="Rendezvous '26 home">
+        <img src="assets/img/Logo-.png" alt="" class="h-8 w-8 sm:h-9 sm:w-9 flex-none object-contain">
+        <img src="assets/img/rendezvous.png" alt="Rendezvous '26"
+          class="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+      </a>
+
+     
+
+      <div class="flex items-center gap-space-sm flex-none">
+        <a
+          class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
+          href="team-points.html">
+          <span class="material-symbols-outlined text-[16px]">token</span>
+          <span>TEAM POINTS</span>
+        </a>
+        <a class="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:scale-105 transition-transform"
+          href="admin.html" aria-label="Admin portal">
+          <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+        </a>
+        <button type="button" id="nav-toggle"
+          class="lg:hidden flex w-10 h-10 rounded-lg bg-surface-container-high/80 text-on-surface hover:text-primary items-center justify-center"
+          aria-label="Toggle menu" aria-expanded="false">
+          <span class="material-symbols-outlined text-[22px]">menu</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full pt-20 bg-transparent min-h-[calc(100vh-80px)]">
+    <div class="flex flex-col w-full">
+      <!-- SECTION 1: HERO -->
+      <section
+        class="relative w-full overflow-hidden px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop pt-space-xl pb-space-3xl lg:min-h-[calc(100vh-5rem)]"
+        id="hero">
+        <span class="hud-corners" aria-hidden="true"></span>
+        <img src="assets/img/decoding-bw.png" alt="" aria-hidden="true"
+          class="absolute top-1/2 right-[-4%] -translate-y-1/2 h-[96%] w-auto opacity-[0.22] pointer-events-none select-none" />
+        <img src="assets/img/sideBranch.png" alt="" class="absolute top-0 right-0 w-44 sm:w-[25rem]  pointer-events-none select-none" />
+        <img src="assets/img/BLeaf-.svg" alt="" aria-hidden="true"
+          class="absolute bottom-[-4%] right-[-2%] w-40 sm:w-[26rem] -rotate-6 leaf-sway opacity-90 pointer-events-none select-none leaf" />
+        
+
+        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-space-xl lg:gap-gutter-desktop items-center">
+          <div class="lg:col-span-7 flex flex-col items-start space-y-space-md">
+
+            <h1 class="w-full max-w-[820px] pt-space-xl pb-space-2xs flicker">
+              <img src="assets/img/decoding.svg" alt="Rendezvous '26 - Decoding Phytolore"
+                class="w-[65%] h-auto drop-shadow-[0_24px_60px_rgba(42,107,41,0.45)]" fetchpriority="high" />
+            </h1>
+            <div class="flex flex-col sm:flex-column sm:items-center gap-space-xs sm:gap-space-sm">
+              <span
+                class="date inline-flex items-center gap-space-xs px-space-md py-space-2xs rounded-full bg-secondary-container text-on-secondary-container font-label-code text-label-code shadow-[0_0_16px_rgba(42,107,41,0.6)] neon-border">
+                <span class="material-symbols-outlined text-[15px]">calendar_month</span>
+                <span class="tracking-widest uppercase font-semibold">September 12 - 13, 2026</span>
+              </span>
+              <span
+                class="flex items-center gap-space-2xs text-on-surface-variant text-label-code tracking-widest uppercase campus">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                Madeenathunnoor Baithul Izza
+              </span>
+            </div>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+              The 26th edition of the flagship Life Festival at Jamia Madeenathunnoor - exploring
+              ancient botanical lore, toxicological tension, and speculative cellular life
+              sciences.
+            </p>
+
+            
+
+            
+          </div>
+
+
+        </div>
+      </section>
+
+      <!-- BRAND TICKER BAND -->
+      <section class="band-viewport h-20 sm:h-24" aria-hidden="true">
+        <div
+          class="band-strip top-3 bg-[#a3e635] text-[#0b2412] rotate-[1.5deg] shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
+          <div class="band-track" style="animation-duration: 46s; animation-direction: reverse;">
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Rendezvous '26</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Decoding Phytolore</span></span>
+            <span class="band-item"><span class="band-icon material-symbols-outlined text-[16px]">calendar_month</span><span>Sept 12 &ndash; 13</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Jamia Madeenathunnoor</span></span>
+            <span class="band-item"><span>Baithul Izza Life Festival</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Rendezvous '26</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Decoding Phytolore</span></span>
+            <span class="band-item"><span class="band-icon material-symbols-outlined text-[16px]">calendar_month</span><span>Sept 12 &ndash; 13</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Jamia Madeenathunnoor</span></span>
+            <span class="band-item"><span>Baithul Izza Life Festival</span></span>
+          </div>
+        </div>
+
+        <div
+          class="band-strip bottom-3 bg-[#0d2215] text-primary border-y border-white/10 -rotate-[1.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+          <div class="band-track" style="animation-duration: 64s;">
+            <span class="band-item"><span>Baithul Izza Life Festival</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Rendezvous '26</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Decoding Phytolore</span></span>
+            <span class="band-item"><span class="band-icon material-symbols-outlined text-[16px]">calendar_month</span><span>Sept 12 &ndash; 13</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Jamia Madeenathunnoor</span></span>
+            <span class="band-item"><span>Baithul Izza Life Festival</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Rendezvous '26</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Decoding Phytolore</span></span>
+            <span class="band-item"><span class="band-icon material-symbols-outlined text-[16px]">calendar_month</span><span>Sept 12 &ndash; 13</span></span>
+            <span class="band-item"><img class="band-icon h-5 w-5 object-contain flex-none" src="assets/img/Logo-.png" alt="" /><span>Jamia Madeenathunnoor</span></span>
+          </div>
+        </div>
+</section>
+
+      <!-- SECTION: THEME VIDEO — animated CSS waves backdrop -->
+      <section class="wave-section w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop py-space-3xl mb-space-3xl"
+        id="ocean">
+        <div class="wave-content">
+          <div class="theme-player">
+            <div class="player-hud">
+              <span>DECODING PHYTOLORE</span>
+            </div>
+            <div class="player-frame">
+              <video
+                id="theme-video"
+                src="assets/video/promo.mp4"
+                poster="assets/img/"
+                preload="metadata"
+                playsinline
+                loop></video>
+              <button type="button" class="play-btn" aria-label="Play the theme film">
+                <span class="material-symbols-outlined play-icon text-[32px]">play_arrow</span>
+                <span class="play-label">PLAY</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: QUICK ACCESS HUB -->
+      <section class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop py-space-3xl mb-space-3xl"
+        id="quick">
+        <div class="max-w-7xl mx-auto">
+          <div class="space-y-space-2xs mb-space-2xl">
+            <div
+              class="inline-flex items-center gap-space-2xs px-space-sm py-1 rounded-full bg-surface-container text-secondary font-label-code text-label-code uppercase tracking-widest">
+              <span class="material-symbols-outlined text-[14px]">dashboard</span>
+              <span>Quick Access</span>
+            </div>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface uppercase tracking-tight">
+              Explore the Confluence
+            </h3>
+            <p class="font-body-md text-body-md text-on-surface-variant max-w-xl">
+              Jump straight into the live standings, published results, the media archive, or the
+              theme film.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+            <a href="results.html"
+              class="group relative rounded-2xl p-space-lg bg-surface-container-low/70 border border-white/5 hover:border-primary/50 hover:bg-surface-container/70 transition-all duration-300 overflow-hidden shadow-md">
+              <span
+                class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-primary/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></span>
+              <span
+                class="mb-space-md flex w-12 h-12 items-center justify-center rounded-xl bg-primary-container/15 text-primary border border-primary/25 group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined">bar_chart</span>
+              </span>
+              <span class="block font-headline-sm text-headline-sm font-semibold text-on-surface uppercase tracking-tight">Results</span>
+              <span class="mt-1 block font-body-sm text-body-sm text-on-surface-variant">Live published result posters as the juries sign them off.</span>
+              <span
+                class="mt-space-md inline-flex items-center gap-1 font-label-code text-label-code text-primary uppercase">Open <span
+                  class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span></span>
+            </a>
+
+            <a href="schedule.html"
+              class="group relative rounded-2xl p-space-lg bg-surface-container-low/70 border border-white/5 hover:border-primary/50 hover:bg-surface-container/70 transition-all duration-300 overflow-hidden shadow-md">
+              <span
+                class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-primary/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></span>
+              <span
+                class="mb-space-md flex w-12 h-12 items-center justify-center rounded-xl bg-primary-container/15 text-primary border border-primary/25 group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined">calendar_month</span>
+              </span>
+              <span class="block font-headline-sm text-headline-sm font-semibold text-on-surface uppercase tracking-tight">Schedule</span>
+              <span class="mt-1 block font-body-sm text-body-sm text-on-surface-variant">The two-day event lineup and arena timings for the confluence.</span>
+              <span
+                class="mt-space-md inline-flex items-center gap-1 font-label-code text-label-code text-primary uppercase">Open <span
+                  class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span></span>
+            </a>
+
+            <a href="team-points.html"
+              class="group relative rounded-2xl p-space-lg bg-surface-container-low/70 border border-white/5 hover:border-primary/50 hover:bg-surface-container/70 transition-all duration-300 overflow-hidden shadow-md">
+              <span
+                class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-primary/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></span>
+              <span
+                class="mb-space-md flex w-12 h-12 items-center justify-center rounded-xl bg-primary-container/15 text-primary border border-primary/25 group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined">leaderboard</span>
+              </span>
+              <span class="block font-headline-sm text-headline-sm font-semibold text-on-surface uppercase tracking-tight">Team Status</span>
+              <span class="mt-1 block font-body-sm text-body-sm text-on-surface-variant">Live aggregate house tally refreshed as points are awarded.</span>
+              <span
+                class="mt-space-md inline-flex items-center gap-1 font-label-code text-label-code text-primary uppercase">Open <span
+                  class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span></span>
+            </a>
+
+            <a href="gallery.html"
+              class="group relative rounded-2xl p-space-lg bg-surface-container-low/70 border border-white/5 hover:border-primary/50 hover:bg-surface-container/70 transition-all duration-300 overflow-hidden shadow-md">
+              <span
+                class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-primary/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></span>
+              <span
+                class="mb-space-md flex w-12 h-12 items-center justify-center rounded-xl bg-primary-container/15 text-primary border border-primary/25 group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined">photo_library</span>
+              </span>
+              <span class="block font-headline-sm text-headline-sm font-semibold text-on-surface uppercase tracking-tight">Gallery</span>
+              <span class="mt-1 block font-body-sm text-body-sm text-on-surface-variant">Photographs from the floor of the confluence as they are uploaded.</span>
+              <span
+                class="mt-space-md inline-flex items-center gap-1 font-label-code text-label-code text-primary uppercase">Open <span
+                  class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span></span>
+            </a>
+
+
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="hidden lg:flex fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-[60]" aria-label="Quick links">
+      <div class="pill-nav">
+        <a href="results.html">
+          <span class="material-symbols-outlined text-[16px]">bar_chart</span>
+          <span>Result</span>
+        </a>
+        <a href="schedule.html">
+          <span class="material-symbols-outlined text-[16px]">calendar_month</span>
+          <span>Schedule</span>
+        </a>
+        <a href="gallery.html">
+          <span class="material-symbols-outlined text-[16px]">photo_library</span>
+          <span>Gallery</span>
+        </a>
+        
+      </div>
+  </nav>
+  <footer class="w-full bg-surface-container-lowest/90 backdrop-blur-2xl py-space-2xl mt-space-4xl border-t border-white/5">
+    <div class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-space-xl mb-space-xl">
+        <div class="space-y-space-sm">
+          <div class="flex items-center gap-space-sm">
+            <img src="assets/img/Logo-.png" alt="" class="h-6 w-6 flex-none object-contain">
+            <img src="assets/img/rendezvous.png" alt="Rendezvous '26" class="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+          </div>
+          <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed max-w-xs">
+            An avant-garde scientific confluence by Jamia Madeenathunnoor, Poonoor, Calicut.
+          </p>
+        </div>
+
+        <div class="space-y-space-xs">
+          <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Explore</h4>
+          <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
+            <li><a class="hover:text-primary transition-colors" href="index.html">Home</a></li>
+            <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
+            <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
+            <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
+            <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
+
+          </ul>
+        </div>
+
+        <div class="space-y-space-xs">
+          <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Quick Links</h4>
+          <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
+            <li><a class="hover:text-primary transition-colors" href="admin.html">Admin</a></li>
+            <li><span class="text-on-surface-variant">SEPT 12–13, 2026</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-body-sm text-body-sm border-t border-white/5">
+        <p>© <span id="year"></span> Rendezvous '26 · Jamia Madeenathunnoor. All rights reserved.</p>
+        <p class="font-label-code text-label-code">SEPT 12–13</p>
+      </div>
+    </div>
+  </footer>
+
+
+  <script src="js/ui.js"></script>
+  <script>
+    window.RV26.UI.initShell();
+
+    /* CSS animated waves — inject green sky slivers into #ocean */
+    (function () {
+      var ocean = document.getElementById('ocean');
+      if (!ocean || ocean.querySelector('.wave')) return;
+      var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var waveWidth = 10;
+      var waveCount = Math.max(Math.floor(ocean.offsetWidth / waveWidth), 40);
+      if (prefersReduced) waveCount = Math.floor(waveCount / 4);
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < waveCount; i++) {
+        var wave = document.createElement('div');
+        wave.className = 'wave';
+        wave.style.left = i * waveWidth + 'px';
+        wave.style.animationDelay = prefersReduced ? (i / 100) * 1.2 + 's' : (i / 100) + 's';
+        frag.appendChild(wave);
+      }
+      ocean.appendChild(frag);
+    })();
+
+    /* Theme video — tap to play (with sound), tap again to pause */
+    (function () {
+      var player = document.getElementById('theme-video');
+      var overlay = document.querySelector('.theme-player .play-btn');
+      if (!player || !overlay) return;
+
+      function start() {
+        if (!player.paused) return;
+        if (player.muted) player.muted = false;
+        player.play().then(function () {
+          overlay.classList.add('is-hidden');
+        }).catch(function () {});
+      }
+
+      function stop() {
+        player.pause();
+        overlay.classList.remove('is-hidden');
+      }
+
+      overlay.addEventListener('click', start);
+      player.addEventListener('click', function () {
+        if (player.paused) start();
+        else stop();
+      });
+      player.addEventListener('pause', function () {
+        overlay.classList.remove('is-hidden');
+      });
+      if (player.ended) player.currentTime = 0;
+    })();
+  </script>
+<div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-6"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a><a href="team-points.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">token</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Points</span></a><a href="admin.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">person</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Admin</span></a></div></nav>
+</body>
+
+</html>
