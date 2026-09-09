@@ -48,6 +48,21 @@
     }
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());
+    initPillNav();
+  }
+
+  /* --------------------------- bottom pill nav ------------------------ */
+
+  function initPillNav() {
+    const base = (location.pathname.split('/').pop() || '').toLowerCase();
+    const file = base || 'index.html';
+    document.querySelectorAll('.pill-nav a[href]').forEach(function (a) {
+      const href = (a.getAttribute('href') || '').split(/[?#]/)[0].toLowerCase();
+      if (href && href === file) {
+        a.classList.add('is-active');
+        a.setAttribute('aria-current', 'page');
+      }
+    });
   }
 
   /* --------------------------- feedback DOM --------------------------- */

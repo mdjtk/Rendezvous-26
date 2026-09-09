@@ -9,7 +9,7 @@
   const UI = window.RV26.UI;
   const esc = UI.escapeHtml;
 
-  const SESSION_KEY = 'rv26_admin';
+  const SESSION_KEY = 'rv26_role';
 
   const gate = document.getElementById('gate');
   const gatePw = document.getElementById('gatePw');
@@ -28,15 +28,32 @@
   /* ------------------------------ security ----------------------------- */
 
   function attempt(pw) {
-    if (pw === C.ADMIN_PASSWORD && pw !== '') {
-      gateErr.textContent = '';
-      gatePw.value = '';
-      sessionStorage.setItem(SESSION_KEY, '1');
-      boot();
-    } else {
-      gateErr.textContent = 'Incorrect access code. Try again.';
-      gatePw.select();
+    if (!pw) {
+      gateErr.textContent = 'Enter an access code.';
+      gatePw.focus();
+      return;
     }
+    if (pw === C.ADMIN_PASSWORD) {
+      grant('admin');
+      return;
+    }
+    if (pw === C.STORE_PIN) {
+      grant('store');
+      return;
+    }
+    gateErr.textContent = 'Incorrect access code. Try again.';
+    gatePw.select();
+  }
+
+  function grant(role) {
+    gateErr.textContent = '';
+    gatePw.value = '';
+    try {
+      sessionStorage.setItem(SESSION_KEY, role);
+    } catch (e) {
+      /* ignore */
+    }
+    boot(role);
   }
 
   function gateReveal() {
@@ -44,16 +61,20 @@
     dash.classList.add('is-hidden');
   }
 
-  function boot() {
+  function boot(role) {
     gate.classList.add('is-hidden');
     dash.classList.remove('is-hidden');
-    document.title = 'Admin — Rendezvous \'26';
+    document.title = role === 'store' ? 'Store Counter — Rendezvous \'26' : 'Admin — Rendezvous \'26';
     const live = DB.isSupabaseConfigured();
     setupBanner.classList.toggle('is-hidden', live);
     setupMsg.textContent = live ? 'Live data mode' : 'Supabase not configured';
     setupMsg2.textContent = live
       ? 'writing to your Supabase project'
       : 'add SUPABASE_URL + SUPABASE_ANON_KEY to js/config.js';
+    if (role === 'store') {
+      storeBoot();
+      return;
+    }
     initTabs();
     loadPhotos();
     loadResults();
@@ -73,8 +94,7 @@
     attempt(gatePw.value.trim());
   });
 
-  if (sessionStorage.getItem(SESSION_KEY) === '1') boot();
-  else gateReveal();
+  if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
   /* -------------------------------- tabs -------------------------------- */
 
@@ -413,7 +433,7 @@
         '  <span class="student-name">' + esc(s.name) + '</span>' +
         '  <span class="student-team">' + esc(s.team || 'No team') + '</span>' +
         '</span>' +
-        '<span class="student-pts">' + esc(s.points) + ' GLP</span>' +
+        '<span class="student-pts">' + esc(s.points) + ' FVP</span>' +
         '<span class="student-actions">' +
         '  <button type="button" class="pill-btn" data-act="qr">QR</button>' +
         '  <button type="button" class="pill-btn" data-act="up" aria-label="Add 5 points">+5</button>' +
@@ -453,7 +473,7 @@
 
   function qrDataUrl(token) {
     const root = location.origin + location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1);
-    return root + 'store.html?code=' + encodeURIComponent(token);
+    return root + 'points.html?code=' + encodeURIComponent(token);
   }
 
   function qrImgTag(token) {
@@ -598,7 +618,7 @@
         (rank ? rank + ordinal(rank) + ' · ' : '') +
         (awardEvent.value.trim() || 'Event');
       await DB.awardPoints(s.id, amount, reason);
-      awardNote('Credited ' + amount + ' GLP to ' + s.name + '.');
+      awardNote('Credited ' + amount + ' FVP to ' + s.name + '.');
       loadStudents();
       loadAwardLog();
       awardStudent.value = '';
@@ -662,4 +682,171 @@
       loadAwardLog();
     });
   }
+
+  /* --------------------------- store counter role ------------------------- */
+
+  const tabsBar = document.querySelector('.tabs');
+  const storePanel = document.getElementById('panel-store');
+  const scToken = document.getElementById('scToken');
+  const scFindToken = document.getElementById('scFindToken');
+  const scName = document.getElementById('scName');
+  const scFindName = document.getElementById('scFindName');
+  const scErr = document.getElementById('scErr');
+  const scCard = document.getElementById('scCard');
+  const scAvatar = document.getElementById('scAvatar');
+  const scNameOut = document.getElementById('scNameOut');
+  const scTeam = document.getElementById('scTeam');
+  const scBalance = document.getElementById('scBalance');
+  const scAmount = document.getElementById('scAmount');
+  const scReason = document.getElementById('scReason');
+  const scCharge = document.getElementById('scCharge');
+  const scMsg = document.getElementById('scMsg');
+  const scCount = document.getElementById('scCount');
+  const scLedger = document.getElementById('scLedger');
+
+  let scStudent = null;
+
+  async function storeBoot() {
+    if (tabsBar) tabsBar.classList.add('is-hidden');
+    panels.forEach((p) => p.classList.add('is-hidden'));
+    storePanel.classList.remove('is-hidden');
+    scToken.focus();
+    try {
+      await loadStudents();
+    } catch (e) {
+      /* students list is best-effort for ledger name resolution */
+    }
+    loadStoreLedger();
+  }
+
+  function scErrOn(msg) {
+    scErr.textContent = msg || '';
+    scErr.classList.toggle('hidden', !msg);
+  }
+
+  function scMsgOn(msg, isError) {
+    scMsg.textContent = msg || '';
+    scMsg.classList.toggle('is-error', Boolean(isError));
+    scMsg.classList.toggle('hidden', !msg);
+  }
+
+  function showScStudent(s) {
+    scStudent = s;
+    scAvatar.textContent = initials(s.name);
+    scNameOut.textContent = s.name;
+    scTeam.textContent = s.team || 'No team';
+    scTeam.style.display = s.team ? '' : 'none';
+    scBalance.textContent = s.points;
+    scCard.classList.remove('hidden');
+    scAmount.value = '';
+    scReason.value = '';
+    scMsgOn('');
+  }
+
+  async function findScToken() {
+    scErrOn('');
+    const raw = scToken.value.trim().toUpperCase();
+    if (!raw) return;
+    const s = await DB.getStudentByToken(raw).catch(() => null);
+    if (s) showScStudent(s);
+    else scErrOn('No wallet found for that code.');
+  }
+
+  async function findScName() {
+    scErrOn('');
+    const name = scName.value.trim();
+    if (!name) return;
+    try {
+      const s = await DB.getStudentByName(name);
+      if (s) showScStudent(s);
+      else scErrOn('No wallet found for that name.');
+    } catch (e) {
+      scErrOn('Could not look that up. Try again.');
+    }
+  }
+
+  scFindToken.addEventListener('click', findScToken);
+  scToken.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') findScToken();
+  });
+  scFindName.addEventListener('click', findScName);
+  scName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') findScName();
+  });
+
+  scCharge.addEventListener('click', async () => {
+    const amt = Math.floor(Number(scAmount.value));
+    const reason = scReason.value.trim();
+    scMsgOn('');
+    if (!scStudent) {
+      scMsgOn('Find a wallet first.', true);
+      return;
+    }
+    if (!amt || amt < 1) {
+      scMsgOn('Enter an amount to charge.', true);
+      return;
+    }
+    scCharge.disabled = true;
+    try {
+      const updated = await DB.deductForStore(scStudent.id, amt, reason);
+      scBalance.textContent = updated.points;
+      scMsgOn('Charged ' + amt + ' FVP — new balance ' + updated.points + '.');
+      scAmount.value = '';
+      scReason.value = '';
+      loadStoreLedger();
+    } catch (e) {
+      if (e && e.code === 'INSUFFICIENT') {
+        scMsgOn('Not enough points — balance is ' + e.balance + ' FVP.', true);
+      } else {
+        scMsgOn('Could not record the purchase. Try again.', true);
+      }
+    } finally {
+      scCharge.disabled = false;
+    }
+  });
+
+  async function loadStoreLedger() {
+    try {
+      const rows = await DB.getLedgerAll();
+      renderStoreLedger(rows.slice(0, 15));
+    } catch (e) {
+      renderStoreLedger(null);
+    }
+  }
+
+  function renderStoreLedger(rows) {
+    scCount.textContent = rows && rows.length ? rows.length + (rows.length === 1 ? ' entry' : ' entries') : '';
+    scLedger.innerHTML = '';
+    if (!rows || !rows.length) {
+      scLedger.appendChild(
+        UI.emptyState({
+          title: 'No activity yet',
+          hint: 'Awards and purchases will appear here.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+    rows.forEach((r) => {
+      const li = document.createElement('li');
+      li.className = 'ledger-row';
+      li.innerHTML =
+        '<span class="ledger-delta ' + (Number(r.delta) >= 0 ? 'is-add' : 'is-sub') + '">' +
+        (Number(r.delta) >= 0 ? '+' : '−') +
+        Math.abs(r.delta) +
+        '</span>' +
+        '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
+        '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
+      scLedger.appendChild(li);
+    });
+  }
+
+  let role = null;
+  try {
+    role = sessionStorage.getItem(SESSION_KEY);
+  } catch (e) {
+    role = null;
+  }
+  if (role === 'admin' || role === 'store') boot(role);
+  else gateReveal();
 })();

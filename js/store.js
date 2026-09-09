@@ -197,7 +197,7 @@
       }
     } catch (e) {
       if (e && e.code === 'INSUFFICIENT') {
-        purchaseError('Not enough points — balance is ' + e.balance + ' GLP.');
+        purchaseError('Not enough points — balance is ' + e.balance + ' FVP.');
       } else {
         purchaseError('Could not record the purchase. Try again.');
       }

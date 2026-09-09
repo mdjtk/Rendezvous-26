@@ -309,8 +309,9 @@
     requireConfigured();
     const n = cleanName(name);
     if (!n) return null;
+    const pattern = '*' + n.split(/\s+/).join('*') + '*';
     const res = await fetch(
-      `${C().SUPABASE_URL}/rest/v1/students?name=ilike.${encodeURIComponent(n)}&select=*&limit=1`,
+      `${C().SUPABASE_URL}/rest/v1/students?name=ilike.${encodeURIComponent(pattern)}&select=*&limit=1`,
       { headers: headers() }
     );
     if (!res.ok) throw new Error('Read failed (' + res.status + ')');

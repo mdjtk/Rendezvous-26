@@ -1,370 +1,52 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="0; url=admin.html" />
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
     <meta name="theme-color" content="#051910" />
-    <meta
-      name="description"
-      content="Festivita points wallet and store counter for Rendezvous '26 â€” scan your QR to see your balance, or hand it to the counter to spend."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
+    <title>Store Counter — Rendezvous '26</title>
     <style>
-      @layer base {
-        html,
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        body {
-          overscroll-behavior: none;
-        }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
       }
-      ::-webkit-scrollbar {
-        display: none;
+      body {
+        background: #051910;
+        color: #d0d7d1;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .wrap {
+        text-align: center;
+        padding: 2rem;
+      }
+      a {
+        color: #a3e635;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .tag {
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        margin: 0 0 0.5rem;
+        color: #a3e635;
       }
     </style>
-    <title>Festivita Store â€” Rendezvous '26</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
-    <link rel="stylesheet" href="css/style.css" />
   </head>
-
-  <body
-    class="bg-background font-body-md text-body-md text-on-background relative selection:bg-primary-container selection:text-on-primary-container min-h-screen"
-  >
-    <div class="ambient-bg" aria-hidden="true"></div>
-
-    <header
-      class="fixed top-0 w-full z-50  shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-      <div
-        class="h-20 w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop flex items-center justify-between gap-space-md relative">
-        <a href="index.html" class="flex items-center gap-space-sm min-w-0" aria-label="Rendezvous '26 home">
-          <img src="assets/img/Logo-.png" alt="" class="h-8 w-8 sm:h-9 sm:w-9 flex-none object-contain">
-          <img src="assets/img/rendezvous.png" alt="Rendezvous '26"
-            class="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
-        </a>
-
-        <div class="flex items-center gap-space-sm flex-none">
-          <a
-            class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
-            href="team-points.html">
-            <span class="material-symbols-outlined text-[16px]">token</span>
-            <span>TEAM POINTS</span>
-          </a>
-          <a class="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:scale-105 transition-transform"
-            href="admin.html" aria-label="Admin portal">
-            <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
-          </a>
-          <button type="button" id="nav-toggle"
-            class="lg:hidden flex w-10 h-10 rounded-lg bg-surface-container-high/80 text-on-surface hover:text-primary items-center justify-center"
-            aria-label="Toggle menu" aria-expanded="false">
-            <span class="material-symbols-outlined text-[22px]">menu</span>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="w-full pt-20 bg-transparent min-h-[calc(100vh-80px)]">
-      <section
-        class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop py-space-4xl relative"
-      >
-        <div class="max-w-7xl mx-auto">
-          <div class="max-w-2xl">
-            <div
-              class="inline-flex items-center gap-space-xs font-label-code text-label-code uppercase tracking-widest text-secondary mb-space-xs"
-            >
-              <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
-              <span>Student Wallet Â· Store Counter</span>
-            </div>
-            <h1
-              class="font-headline-lg text-headline-lg font-bold text-on-background uppercase tracking-tight"
-            >
-              Festivita Store
-            </h1>
-            <p class="font-body-md text-body-md text-on-surface-variant max-w-lg mt-space-xs">
-              Your points live on a QR code. Scan your pass to see your wallet â€” or hand it to the
-              counter to spend them on exchange goodies.
-            </p>
-          </div>
-
-          <div id="lookup" class="max-w-xl mt-space-2xl">
-            <div
-              class="rounded-3xl bg-surface-bright/80 backdrop-blur-xl border border-white/10 p-space-lg shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-            >
-              <div class="space-y-space-xs">
-                <label
-                  for="token-input"
-                  class="flex items-center gap-space-xs font-label-code text-label-code uppercase tracking-widest text-on-surface-variant"
-                >
-                  <span class="material-symbols-outlined text-[16px]">qr_code_scanner</span>
-                  Scan or enter your code
-                </label>
-                <div class="flex gap-space-xs">
-                  <input
-                    id="token-input"
-                    type="text"
-                    autocomplete="off"
-                    spellcheck="false"
-                    placeholder="Student ID, e.g. 1001"
-                    class="store-input"
-                  />
-                  <button type="button" id="token-find" class="btn-lime">
-                    Find wallet
-                  </button>
-                </div>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Students â€” your wallet opens automatically when you scan your QR.
-                </p>
-              </div>
-
-              <div class="flex items-center gap-space-sm my-space-md">
-                <span class="h-px flex-1 bg-white/10"></span>
-                <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">or find by name</span>
-                <span class="h-px flex-1 bg-white/10"></span>
-              </div>
-
-              <div class="flex gap-space-xs">
-                <input
-                  id="name-input"
-                  type="text"
-                  autocomplete="off"
-                  spellcheck="false"
-                  placeholder="Your full name"
-                  class="store-input"
-                />
-                <button type="button" id="name-find" class="btn-lime">
-                  Find wallet
-                </button>
-              </div>
-
-              <p id="lookup-error" class="hidden mt-space-sm font-body-sm text-body-sm text-error"></p>
-            </div>
-          </div>
-
-          <div id="wallet" class="hidden mt-space-2xl">
-            <div class="grid lg:grid-cols-[380px,1fr] gap-space-xl">
-              <div
-                class="wallet-card rounded-3xl bg-gradient-to-br from-surface-bright to-surface-container p-space-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-              >
-                <div class="flex items-center gap-space-sm">
-                  <span id="wallet-avatar" class="wallet-avatar">?</span>
-                  <div class="min-w-0">
-                    <h2 id="wallet-name" class="font-headline-sm text-body-lg font-bold text-on-surface truncate"></h2>
-                    <span id="wallet-team" class="inline-block mt-space-2xs font-label-code text-label-code text-primary bg-primary-container/40 rounded-full px-space-xs py-space-2xs uppercase tracking-widest"></span>
-                  </div>
-                </div>
-
-                <div class="mt-space-lg">
-                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-xs">
-                    Wallet balance
-                  </div>
-                  <div class="flex items-end gap-space-xs">
-                    <span id="wallet-points" class="font-headline-lg text-headline-lg font-bold text-primary leading-none">0</span>
-                    <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">GLP</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  id="counter-toggle"
-                  class="mt-space-lg w-full flex items-center justify-center gap-space-xs rounded-xl bg-primary text-on-primary font-title-md text-body-sm py-space-sm transition-all hover:bg-primary/90"
-                >
-                  <span class="material-symbols-outlined text-[16px]">point_of_sale</span>
-                  Store counter
-                </button>
-                <p class="mt-space-xs font-body-sm text-body-sm text-on-surface-variant">
-                  Shopkeeper access only â€” spending is recorded on this wallet.
-                </p>
-              </div>
-
-              <div
-                class="rounded-3xl bg-surface-bright/70 backdrop-blur-xl border border-white/10 p-space-lg"
-              >
-                <div class="flex items-center justify-between mb-space-sm">
-                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
-                    Recent activity
-                  </div>
-                  <span class="font-body-sm text-body-sm text-on-surface-variant" id="wallet-count"></span>
-                </div>
-                <ul id="ledger" class="space-y-space-xs"></ul>
-              </div>
-            </div>
-
-            <div id="counter" class="hidden mt-space-xl max-w-xl">
-              <div
-                class="rounded-3xl bg-surface-bright/80 backdrop-blur-xl border border-primary/30 p-space-lg shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-              >
-                <div class="flex items-center gap-space-xs font-label-code text-label-code uppercase tracking-widest text-primary mb-space-sm">
-                  <span class="material-symbols-outlined text-[18px]">point_of_sale</span>
-                  <span>Count this purchase</span>
-                </div>
-
-                <div id="counter-gate">
-                  <div class="flex gap-space-xs">
-                    <input
-                      id="store-pin"
-                      type="password"
-                      autocomplete="off"
-                      placeholder="Store PIN"
-                      class="store-input"
-                    />
-                    <button type="button" id="unlock-counter" class="btn-lime">
-                      Unlock counter
-                    </button>
-                  </div>
-                  <p id="pin-error" class="hidden mt-space-xs font-body-sm text-body-sm text-error">
-                    Wrong PIN. Counter access is for staff only.
-                  </p>
-                </div>
-
-                <div id="purchase" class="hidden">
-                  <div class="flex gap-space-xs items-stretch">
-                    <div class="flex-1">
-                      <label
-                        for="amount"
-                        class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest block mb-space-2xs"
-                      >Amount</label>
-                      <div class="flex items-center gap-space-xs">
-                        <input
-                          id="amount"
-                          type="number"
-                          min="1"
-                          step="1"
-                          inputmode="numeric"
-                          placeholder="e.g. 20"
-                          class="store-input"
-                        />
-                        <span class="font-label-code text-label-code text-primary uppercase tracking-widest">GLP</span>
-                      </div>
-                    </div>
-                    <div class="flex-1">
-                      <label
-                        for="reason"
-                        class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest block mb-space-2xs"
-                      >Item (optional)</label>
-                      <input id="reason" type="text" autocomplete="off" placeholder="e.g. Snack Â· Book" class="store-input" />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    id="confirm-purchase"
-                    class="mt-space-sm w-full flex items-center justify-center gap-space-xs rounded-xl bg-secondary text-on-primary font-title-md text-body-sm py-space-sm transition-all hover:bg-secondary/90 disabled:opacity-50"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
-                    Confirm purchase
-                  </button>
-
-                  <p id="purchase-error" class="hidden mt-space-xs font-body-sm text-body-sm text-error"></p>
-                  <p id="purchase-success" class="hidden mt-space-xs font-body-sm text-body-sm text-secondary flex items-center gap-space-xs">
-                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                    Purchase recorded â€” balance updated.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <nav class="hidden lg:flex fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-[60]" aria-label="Quick links">
-      <div class="pill-nav">
-        <a href="index.html">
-          <span class="material-symbols-outlined text-[16px]">home</span>
-          <span>Home</span>
-        </a>
-        <a href="schedule.html">
-          <span class="material-symbols-outlined text-[16px]">calendar_month</span>
-          <span>Schedule</span>
-        </a>
-        <a href="gallery.html">
-          <span class="material-symbols-outlined text-[16px]">photo_library</span>
-          <span>Gallery</span>
-        </a>
-        <a href="team-points.html">
-          <span class="material-symbols-outlined text-[16px]">token</span>
-          <span>Points</span>
-        </a>
-      </div>
-    </nav>
-
-    <footer class="w-full bg-surface-container-lowest/90 backdrop-blur-2xl py-space-2xl mt-space-4xl border-t border-white/5">
-      <div class="w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-space-xl mb-space-xl">
-          <div class="space-y-space-sm">
-            <div class="flex items-center gap-space-sm">
-              <img src="assets/img/Logo-.png" alt="" class="h-6 w-6 flex-none object-contain">
-              <img src="assets/img/rendezvous.png" alt="Rendezvous '26" class="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
-            </div>
-            <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed max-w-xs">
-              An avant-garde scientific confluence by Jamia Madeenathunnoor, Poonoor, Calicut.
-            </p>
-          </div>
-
-          <div class="space-y-space-xs">
-            <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Explore</h4>
-            <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
-              <li><a class="hover:text-primary transition-colors" href="index.html">Home</a></li>
-              <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
-              <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
-              <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
-              <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
-
-            </ul>
-          </div>
-
-          <div class="space-y-space-xs">
-            <h4 class="font-headline-sm text-body-lg text-on-surface font-semibold tracking-wide">Quick Links</h4>
-            <ul class="space-y-space-2xs font-body-sm text-body-sm text-on-surface-variant">
-              <li><a class="hover:text-primary transition-colors" href="admin.html">Admin</a></li>
-              <li><span class="text-on-surface-variant">SEPT 12â€“13, 2026</span></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-body-sm text-body-sm border-t border-white/5">
-          <p>Â© <span id="year"></span> Rendezvous '26 Â· Jamia Madeenathunnoor. All rights reserved.</p>
-          <p class="font-label-code text-label-code">SEPT 12â€“13</p>
-        </div>
-      </div>
-    </footer>
-
-    <script src="js/config.js"></script>
-    <script src="js/db.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/store.js"></script>
-    <script>
-      window.RV26.UI.initShell();
-    </script>
-    <div aria-hidden="true" class="h-16 lg:hidden"></div>
-    <nav
-      aria-label="Primary"
-      class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
-    >
-      <div class="mx-auto grid w-full max-w-md grid-cols-6">
-        <a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a>
-        <a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a>
-        <a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a>
-        <a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a>
-        <a href="team-points.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">token</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Points</span></a>
-        <a href="admin.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">person</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Admin</span></a>
-      </div>
-    </nav>
+  <body>
+    <div class="wrap">
+      <p class="tag">Rendezvous &rsquo;26</p>
+      <p>The store counter now lives inside the admin portal. Redirecting…</p>
+      <p><a href="admin.html">Open the admin portal</a></p>
+    </div>
   </body>
 </html>
