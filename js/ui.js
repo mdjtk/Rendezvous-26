@@ -144,6 +144,7 @@
       this.render();
       document.addEventListener('keydown', this.onKey);
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('lightbox-open');
     },
 
     onKey(e) {
@@ -175,6 +176,7 @@
       if (!this.el) return;
       document.removeEventListener('keydown', this.onKey);
       document.body.style.overflow = '';
+      document.body.classList.remove('lightbox-open');
       this.el.remove();
       this.el = null;
     },

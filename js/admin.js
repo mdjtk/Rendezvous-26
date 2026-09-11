@@ -7,11 +7,13 @@
   const C = window.RV26.CONFIG;
   const DB = window.RV26.DB;
   const UI = window.RV26.UI;
+  const PROGRAMS = window.RV26.PROGRAMS;
   const esc = UI.escapeHtml;
 
   const SESSION_KEY = 'rv26_role';
 
   const gate = document.getElementById('gate');
+  const hero = document.getElementById('hero');
   const gatePw = document.getElementById('gatePw');
   const gateErr = document.getElementById('gateErr');
   const gateForm = document.getElementById('gateForm');
@@ -58,11 +60,13 @@
 
   function gateReveal() {
     gate.classList.remove('is-hidden');
+    if (hero) hero.classList.remove('is-hidden');
     dash.classList.add('is-hidden');
   }
 
   function boot(role) {
     gate.classList.add('is-hidden');
+    if (hero) hero.classList.add('is-hidden');
     dash.classList.remove('is-hidden');
     document.title = role === 'store' ? 'Store Counter — Rendezvous \'26' : 'Admin — Rendezvous \'26';
     const live = DB.isSupabaseConfigured();
@@ -78,8 +82,13 @@
     initTabs();
     loadPhotos();
     loadResults();
+    loadResultPrograms();
     loadTeams();
+    loadResultsCounts();
     loadStudents();
+    loadChamp();
+    loadSchedule();
+    loadAwardPrograms();
     loadAwardLog();
     startStudentPoll();
   }
@@ -182,18 +191,181 @@
   const resultForm = document.getElementById('resultForm');
   const eventName = document.getElementById('eventName');
   const categoryField = document.getElementById('category');
-  const participantName = document.getElementById('participantName');
-  const rankField = document.getElementById('rank');
+  const placementList = document.getElementById('placementList');
+  const addPlacementBtn = document.getElementById('addPlacement');
+
+  function addPlacementRow(rankValue, removable) {
+    const DEFAULTS = { 1: 10, 2: 6, 3: 3 };
+    const COIN_DEFAULTS = { 1: 50, 2: 30, 3: 20 };
+    const INPUT_CLS = 'h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 transition-all';
+    const rankSel = document.createElement('select');
+    rankSel.className = 'placement-rank w-[110px] shrink-0 ' + INPUT_CLS;
+    rankSel.innerHTML =
+      '<option value="">Position</option>' +
+      '<option value="1">1 — Winner</option>' +
+      '<option value="2">2 — Runner Up</option>' +
+      '<option value="3">3 — 2nd Runner Up</option>';
+    rankSel.value = String(rankValue || '');
+    rankSel.setAttribute('aria-label', 'Place rank');
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text';
+    nameInp.placeholder = 'Participant name';
+    nameInp.setAttribute('aria-label', 'Participant name for this place');
+    nameInp.setAttribute('list', 'placementOptions');
+    nameInp.setAttribute('autocomplete', 'off');
+    nameInp.className = 'placement-name flex-1 min-w-0 ' + INPUT_CLS.replace(INPUT_CLS, INPUT_CLS + ' placeholder:text-on-surface-variant/50');
+    const ptsLabel = document.createElement('span');
+    ptsLabel.className = 'font-label-code text-[10px] text-on-surface-variant uppercase tracking-widest shrink-0';
+    ptsLabel.textContent = 'Pts';
+    const ptsInp = document.createElement('input');
+    ptsInp.type = 'number';
+    ptsInp.step = '1';
+    ptsInp.min = '0';
+    ptsInp.value = String(DEFAULTS[rankValue] || 0);
+    ptsInp.placeholder = 'Pts';
+    ptsInp.className = 'placement-points w-[60px] shrink-0 ' + INPUT_CLS + ' text-center';
+    ptsInp.setAttribute('aria-label', 'Points for this place');
+    const gradeSel = document.createElement('select');
+    gradeSel.className = 'placement-grade w-[72px] shrink-0 ' + INPUT_CLS;
+    gradeSel.innerHTML =
+      '<option value="">No Grade</option>' +
+      '<option value="A+">A+</option><option value="A">A</option>' +
+      '<option value="B">B</option><option value="C">C</option>';
+    gradeSel.setAttribute('aria-label', 'Grade');
+    const coinsLabel = document.createElement('span');
+    coinsLabel.className = 'font-label-code text-[10px] text-on-surface-variant uppercase tracking-widest shrink-0';
+    coinsLabel.textContent = 'Coins';
+    const coinsInp = document.createElement('input');
+    coinsInp.type = 'number';
+    coinsInp.step = '1';
+    coinsInp.min = '0';
+    coinsInp.value = String(COIN_DEFAULTS[rankValue] || 0);
+    coinsInp.placeholder = '0';
+    coinsInp.className = 'placement-coins w-[60px] shrink-0 ' + INPUT_CLS + ' text-center';
+    coinsInp.setAttribute('aria-label', 'Coins for this place');
+    rankSel.addEventListener('change', () => {
+      const r = Number(rankSel.value);
+      if (DEFAULTS[r] != null && !ptsInp.dataset.custom) ptsInp.value = String(DEFAULTS[r]);
+      if (COIN_DEFAULTS[r] != null && !coinsInp.dataset.custom) coinsInp.value = String(COIN_DEFAULTS[r]);
+    });
+    ptsInp.addEventListener('input', () => {
+      ptsInp.dataset.custom = ptsInp.value ? '1' : '';
+    });
+    coinsInp.addEventListener('input', () => {
+      coinsInp.dataset.custom = coinsInp.value ? '1' : '';
+    });
+    const row = document.createElement('div');
+    row.className = 'placement-row flex items-center gap-space-sm flex-wrap';
+    row.appendChild(rankSel);
+    row.appendChild(nameInp);
+    row.appendChild(ptsLabel);
+    row.appendChild(ptsInp);
+    row.appendChild(gradeSel);
+    row.appendChild(coinsLabel);
+    row.appendChild(coinsInp);
+    if (removable) {
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className =
+        'placement-remove h-11 px-space-sm shrink-0 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors inline-flex items-center justify-center';
+      rm.setAttribute('aria-label', 'Remove place');
+      rm.innerHTML =
+        '<svg viewBox="0 0 24 24" style="width:1.1rem;height:1.1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      rm.addEventListener('click', () => row.remove());
+      row.appendChild(rm);
+    }
+    return row;
+  }
+
+  function resetPlacements() {
+    placementList.innerHTML = '';
+    placementList.appendChild(addPlacementRow(1, false));
+    placementList.appendChild(addPlacementRow(2, false));
+    placementList.appendChild(addPlacementRow(3, false));
+  }
+
+  resetPlacements();
+
+  addPlacementBtn.addEventListener('click', () => {
+    const row = addPlacementRow(2, true);
+    placementList.appendChild(row);
+    row.querySelector('.placement-name').focus();
+  });
   const posterInput = document.getElementById('posterInput');
   const posterLabel = document.getElementById('posterLabel');
   const resultMsg = document.getElementById('resultMsg');
+  const posterPreview = document.getElementById('posterPreview');
+  const posterDropBody = document.getElementById('posterDropBody');
+  const posterDropTitle = document.getElementById('posterDropTitle');
+  const posterDropHint = document.getElementById('posterDropHint');
   const resultGrid = document.getElementById('resultGrid');
 
+  const eventOptions = document.getElementById('eventName');
+  const placementOptions = document.getElementById('placementOptions');
+
+  let resultPrograms = [];
+  async function loadResultPrograms() {
+    try {
+      resultPrograms = await DB.getPrograms();
+    } catch (err) {
+      resultPrograms = [];
+    }
+    syncResultOptions();
+  }
+
+  function syncResultOptions() {
+    const cat = categoryField.value;
+    eventOptions.innerHTML =
+      '<option value="">' + esc(cat ? 'Choose event…' : 'Choose category first…') + '</option>';
+    resultPrograms
+      .filter((p) => p.section === cat)
+      .forEach((p) => {
+        const off = p.stage === 'Off Stage';
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name + (off ? ' — Off Stage' : '');
+        if (off) opt.dataset.stage = 'off';
+        eventOptions.appendChild(opt);
+      });
+    placementOptions.innerHTML = students
+      .filter((s) => s.category === cat)
+      .map((s) => '<option value="' + esc(s.name) + '"></option>')
+      .join('');
+  }
+
+  categoryField.addEventListener('change', syncResultOptions);
+
   posterInput.addEventListener('change', () => {
-    posterLabel.textContent = posterInput.files && posterInput.files[0]
-      ? posterInput.files[0].name
-      : 'Choose an image…';
+    const file = posterInput.files && posterInput.files[0];
+    previewPoster(file);
   });
+
+  function previewPoster(file) {
+    if (!file) {
+      posterPreview.hidden = true;
+      posterPreview.removeAttribute('src');
+      posterDropBody.hidden = false;
+      posterDropTitle.textContent = 'Click to upload';
+      posterDropHint.textContent = 'Result poster · JPG or PNG';
+      posterLabel.classList.remove('has-preview');
+      return;
+    }
+    if (/^image\//.test(file.type)) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        posterPreview.src = reader.result;
+        posterPreview.hidden = false;
+        posterDropBody.hidden = true;
+        posterLabel.classList.add('has-preview');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      posterPreview.hidden = true;
+      posterDropBody.hidden = false;
+      posterDropTitle.textContent = 'Click to upload';
+      posterDropHint.textContent = file.name;
+    }
+  }
 
   resultForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -203,22 +375,35 @@
       resultMsg.classList.add('is-error');
       return;
     }
+    const placements = Array.from(placementList.querySelectorAll('.placement-row'))
+      .map((row) => ({
+        rank: row.querySelector('.placement-rank').value || null,
+        participant_name: (row.querySelector('.placement-name').value || '').trim(),
+        points: parseInt(row.querySelector('.placement-points').value, 10) || 0,
+        grade: row.querySelector('.placement-grade').value || null,
+        coins: parseInt(row.querySelector('.placement-coins').value, 10) || 0,
+      }))
+      .filter((p) => p.participant_name);
+    if (placements.length === 0) {
+      resultMsg.textContent = 'Add at least one place.';
+      resultMsg.classList.add('is-error');
+      return;
+    }
     try {
-      await DB.addResult(
+      await DB.addResults(
         eventName.value.trim(),
-        categoryField.value.trim(),
+        categoryField.value.trim() || 'Minor',
         file,
-        participantName.value.trim(),
-        rankField.value || null
+        placements
       );
-      resultMsg.textContent = 'Result published. It is now live.';
+      resultMsg.textContent = 'Result saved. Publish it from the Teams tab.';
       resultMsg.classList.remove('is-error');
       eventName.value = '';
-      categoryField.value = '';
-      participantName.value = '';
-      rankField.value = '';
+      categoryField.value = 'Minor';
+      resetPlacements();
+      syncResultOptions();
       posterInput.value = '';
-      posterLabel.textContent = 'Choose an image…';
+      previewPoster(null);
       await loadResults();
     } catch (err) {
       resultMsg.textContent = 'Publishing failed — try again.';
@@ -240,8 +425,8 @@
     if (results.length === 0) {
       resultGrid.appendChild(
         UI.emptyState({
-          title: 'Nothing published yet',
-          hint: 'Use the form above to publish the first result poster.',
+          title: 'No results yet',
+          hint: 'Use the form above to add the first result poster.',
           icon: 'result',
         })
       );
@@ -250,16 +435,21 @@
     results.forEach((r) => {
       const card = document.createElement('div');
       card.className = 'admin-item';
+      const badge = r.published
+        ? ''
+        : '<span class="absolute top-2 left-2 bg-amber-600 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">Pending</span>';
       card.innerHTML =
+        '<div class="relative">' + badge +
         '<img src="' + esc(r.url) + '" alt="' + esc(r.event_name) + '" loading="lazy" />' +
+        '</div>' +
         '<span class="admin-item-cap">' +
           esc(r.event_name) + ' · ' + esc(r.category || '') +
           (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
-        '<button type="button" class="admin-del" aria-label="Remove result">' +
+        '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
         '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
         '</button>';
       card.querySelector('.admin-del').addEventListener('click', async () => {
-        if (!window.confirm('Remove this result poster?')) return;
+        if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
         try {
           await DB.deleteResult(r.id, r.url);
           await loadResults();
@@ -273,24 +463,24 @@
 
   /* -------------------------------- teams -------------------------------- */
 
-  const teamForm = document.getElementById('teamForm');
-  const teamNameField = document.getElementById('teamName');
   const teamList = document.getElementById('teamList');
+  const resultsCountEl = document.getElementById('resultsCount');
+  const publishLimitEl = document.getElementById('publishLimit');
+  const publishBtnEl = document.getElementById('publishBtn');
 
   let teams = [];
 
-  teamForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = teamNameField.value.trim();
-    if (!name) return;
+  async function loadResultsCounts() {
     try {
-      await DB.addTeam(name);
-      teamNameField.value = '';
-      await loadTeams();
+      const c = await DB.getResultsCounts();
+      resultsCountEl.textContent =
+        c.total === 0
+          ? 'No results uploaded yet.'
+          : c.published + ' of ' + c.total + ' results published (' + c.pending + ' pending).';
     } catch (err) {
-      window.alert('Could not add the team.');
+      resultsCountEl.textContent = 'Could not load result counts.';
     }
-  });
+  }
 
   async function loadTeams() {
     try {
@@ -313,7 +503,8 @@
       );
       return;
     }
-    teams.forEach((team, i) => {
+    const sorted = teams.slice().sort((a, b) => b.points - a.points);
+    sorted.forEach((team, i) => {
       const row = document.createElement('div');
       row.className = 'admin-team';
       row.innerHTML =
@@ -321,15 +512,10 @@
         '<span class="admin-team-name">' + esc(team.name) + '</span>' +
         '<span class="admin-team-pts">' + esc(team.points) + ' pts</span>' +
         '<span class="admin-team-actions">' +
-        '  <button type="button" class="pill-btn" data-act="up">+5</button>' +
-        '  <button type="button" class="pill-btn" data-act="down">-5</button>' +
         '  <button type="button" class="pill-btn is-danger" data-act="del" aria-label="Delete team">' +
         '    <svg viewBox="0 0 24 24" style="width:.9rem;height:.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M7 4h10M3 6h18M8 6l1 13h6l1-13M10 10v5M14 10v5"/></svg>' +
         '  </button>' +
         '</span>';
-
-      row.querySelector('[data-act="up"]').addEventListener('click', () => adjust(team.id, 5));
-      row.querySelector('[data-act="down"]').addEventListener('click', () => adjust(team.id, -5));
       row.querySelector('[data-act="del"]').addEventListener('click', async () => {
         if (!window.confirm('Delete "' + team.name + '"?')) return;
         try {
@@ -339,58 +525,142 @@
           window.alert('Could not delete the team.');
         }
       });
-
       teamList.appendChild(row);
     });
   }
 
-  async function adjust(id, delta) {
-    const team = teams.find((t) => t.id === id);
-    if (!team) return;
+  publishBtnEl.addEventListener('click', async () => {
+    const limit = parseInt(publishLimitEl.value, 10) || 0;
+    publishBtnEl.disabled = true;
     try {
-      await DB.setTeamPoints(id, Math.max(0, team.points + delta));
-      await loadTeams();
+      const res = await DB.publishResults(limit);
+      teams = res.teams || teams;
+      renderTeams();
+      await loadResultsCounts();
+      await loadResults();
+      if (res.published === 0) {
+        window.alert('No unpublished results to publish.');
+      } else {
+        window.alert(res.published + ' result(s) published. Points awarded.');
+      }
     } catch (err) {
-      window.alert('Could not update the points.');
+      window.alert('Publishing failed — try again.');
+    } finally {
+      publishBtnEl.disabled = false;
+    }
+  });
+
+  /* --------------------- individual champions (champ) --------------------- */
+
+  const champContent = document.getElementById('champContent');
+  let champStudents = [];
+
+  function medalSvg(color) {
+    return (
+      '<svg viewBox="0 0 24 24" class="tp-medal-ico" style="color:' + color +
+      '" fill="none" stroke="currentColor" stroke-width="1.5">' +
+      '<path d="M8 21h8M12 17v4M7.5 3.5h9l-1 6.2a3.5 3.5 0 0 1-7 0l-1-6.2Z" stroke-linejoin="round"/>' +
+      '</svg>'
+    );
+  }
+
+  function renderChamp() {
+    champContent.innerHTML = '';
+    const ranked = champStudents
+      .filter((s) => (s.points || 0) > 0)
+      .sort((a, b) => (b.points || 0) - (a.points || 0));
+
+    if (ranked.length === 0) {
+      champContent.appendChild(
+        UI.emptyState({
+          title: 'No individual champions yet',
+          hint: 'Individual champion points are awarded automatically when results are published.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+
+    const sec = document.createElement('div');
+    sec.className = 'tp-block';
+    sec.innerHTML =
+      '<div class="tp-block-label"><span class="material-symbols-outlined">leaderboard</span> Individual Champions</div>';
+
+    const tbl = document.createElement('div');
+    tbl.className = 'tp-table';
+
+    const th = document.createElement('div');
+    th.className = 'tp-th';
+    th.innerHTML = '<span>#</span><span>Student</span><span>Category</span><span class="right">Points</span>';
+    tbl.appendChild(th);
+
+    ranked.slice(0, 20).forEach((s, i) => {
+      const pos = i + 1;
+      const lead = pos === 1;
+      const row = document.createElement('div');
+      row.className = 'tp-tr' + (lead ? ' is-1' : '');
+      row.style.animationDelay = i * 60 + 'ms';
+      row.innerHTML =
+        '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
+        '<span class="tp-team">' +
+        '<span class="tp-name">' + esc(s.name) + '</span>' +
+        (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
+        '</span>' +
+        '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
+        '<span class="tp-pts right"><b>' + esc(s.points) + '</b></span>';
+      tbl.appendChild(row);
+    });
+
+    sec.appendChild(tbl);
+    champContent.appendChild(sec);
+  }
+
+  async function loadChamp() {
+    try {
+      champStudents = await DB.getStudents();
+      renderChamp();
+    } catch (err) {
+      UI.showError(champContent, 'Could not load individual champions.', () => loadChamp());
     }
   }
 
   /* -------------------------- festivita: students -------------------------- */
 
-  const bulkForm = document.getElementById('bulkForm');
-  const studentBulk = document.getElementById('studentBulk');
-  const studentTeam = document.getElementById('studentTeam');
-  const bulkMsg = document.getElementById('bulkMsg');
   const studentList = document.getElementById('studentList');
   const studentOptions = document.getElementById('studentOptions');
-  const printAllQrs = document.getElementById('printAllQrs');
   const qrPrintAll = document.getElementById('qrPrintAll');
+  const studentCatFilter = document.getElementById('studentCatFilter');
+  const studentSort = document.getElementById('studentSort');
+  const studentCountEl = document.getElementById('studentCount');
 
   let students = [];
 
-  function bulkNote(msg, isError) {
-    bulkMsg.textContent = msg || '';
-    bulkMsg.classList.toggle('is-error', Boolean(isError));
-  }
-
-  bulkForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const names = (studentBulk.value || '').split('\n');
-    if (names.filter((n) => n.trim()).length === 0) return;
-    try {
-      const count = await DB.addStudentsBulk(names, studentTeam.value);
-      bulkNote('Added ' + count + ' student' + (count === 1 ? '' : 's') + '.');
-      studentBulk.value = '';
-      await loadStudents();
-    } catch (err) {
-      bulkNote('Import failed — try again.', true);
+  function filteredStudents() {
+    const cat = studentCatFilter ? studentCatFilter.value : '';
+    const sortKey = studentSort ? studentSort.value : 'pts';
+    const list = students.filter((s) => !cat || (s.category || '') === cat);
+    const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
+    if (sortKey === 'team') {
+      list.sort((a, b) => {
+        const cmp = String(a.team || '').localeCompare(String(b.team || ''));
+        return cmp !== 0 ? cmp : byName(a, b);
+      });
+    } else if (sortKey === 'name') {
+      list.sort(byName);
+    } else {
+      list.sort((a, b) => (b.points || 0) - (a.points || 0) || (b.coins || 0) - (a.coins || 0) || byName(a, b));
     }
-  });
+    if (studentCountEl) {
+      studentCountEl.textContent = list.length + ' student' + (list.length === 1 ? '' : 's');
+    }
+    return list;
+  }
 
   async function loadStudents() {
     try {
       students = await DB.getStudents();
       renderStudentOptions();
+      syncResultOptions();
       renderStudents();
     } catch (err) {
       UI.showError(studentList, 'Could not load students.', () => loadStudents());
@@ -414,26 +684,28 @@
 
   function renderStudents() {
     studentList.innerHTML = '';
-    if (!students.length) {
+    const list = filteredStudents();
+    if (!list.length) {
       studentList.appendChild(
         UI.emptyState({
-          title: 'No students imported',
-          hint: 'Paste the roster above to generate every QR code.',
+          title: 'No students to show',
+          hint: 'Add students to the festivita roster and they will appear here.',
           icon: 'points',
         })
       );
       return;
     }
-    students.forEach((s) => {
+    list.forEach((s) => {
       const row = document.createElement('div');
       row.className = 'student-row';
       row.innerHTML =
         '<span class="student-avatar">' + esc(initials(s.name)) + '</span>' +
         '<span class="student-meta">' +
         '  <span class="student-name">' + esc(s.name) + '</span>' +
-        '  <span class="student-team">' + esc(s.team || 'No team') + '</span>' +
+        '  <span class="student-team">' + esc([s.category, s.team].filter(Boolean).join(' · ') || 'No team') + '</span>' +
         '</span>' +
-        '<span class="student-pts">' + esc(s.points) + ' FVP</span>' +
+        '<span class="student-coins">' + esc(s.coins) + ' Coins</span>' +
+        '<span class="student-pts">' + esc(s.points) + ' Pts</span>' +
         '<span class="student-actions">' +
         '  <button type="button" class="pill-btn" data-act="qr">QR</button>' +
         '  <button type="button" class="pill-btn" data-act="up" aria-label="Add 5 points">+5</button>' +
@@ -458,11 +730,14 @@
     });
   }
 
+  if (studentCatFilter) studentCatFilter.addEventListener('change', renderStudents);
+  if (studentSort) studentSort.addEventListener('change', renderStudents);
+
   async function studentAdjust(id, delta) {
     const s = students.find((x) => String(x.id) === String(id));
     if (!s) return;
     try {
-      await DB.adjustPoints(id, delta, delta > 0 ? 'Manual add' : 'Manual deduct');
+      await DB.adjustCoins(id, delta, delta > 0 ? 'Manual add' : 'Manual deduct');
       await loadStudents();
     } catch (err) {
       window.alert('Could not update ' + s.name + '.');
@@ -514,14 +789,6 @@
     setTimeout(cleanup, 5000);
   }
 
-  printAllQrs.addEventListener('click', () => {
-    if (!students.length) {
-      window.alert('Import the roster first.');
-      return;
-    }
-    printQrs('<div class="qr-grid">' + students.map(qrCard).join('') + '</div>');
-  });
-
   const qrModal = document.createElement('div');
   qrModal.className = 'qr-modal';
   qrModal.innerHTML =
@@ -564,6 +831,7 @@
 
   const awardForm = document.getElementById('awardForm');
   const awardStudent = document.getElementById('awardStudent');
+  const awardCategoryNote = document.getElementById('awardCategoryNote');
   const awardEvent = document.getElementById('awardEvent');
   const awardRank = document.getElementById('awardRank');
   const awardAmount = document.getElementById('awardAmount');
@@ -571,6 +839,67 @@
   const awardLog = document.getElementById('awardLog');
 
   const RANK_POINTS = { 1: 25, 2: 15, 3: 10 };
+  let awardPrograms = [];
+  let lastAwardCategory = '';
+
+  function sectionOfRosterNo(n) {
+    if (n >= 4000) return 'General';
+    if (n >= 3000) return 'Sub junior';
+    if (n >= 2000) return 'Premier';
+    if (n >= 1000) return 'Minor';
+    return null;
+  }
+
+  async function loadAwardPrograms() {
+    try {
+      awardPrograms = await DB.getPrograms();
+      syncAwardEvents();
+    } catch (err) {
+      awardPrograms = [];
+    }
+  }
+
+  function awardStudentOf(raw) {
+    const v = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (!v) return null;
+    const exact = students.find((x) => String(x.name).toLowerCase() === v.toLowerCase());
+    if (exact) return exact;
+    const initials = v.toLowerCase();
+    const matches = students.filter((x) => String(x.name).toLowerCase().startsWith(initials));
+    if (matches.length === 1) return matches[0];
+    return students.find((x) => String(x.name).toLowerCase().includes(initials));
+  }
+
+  function renderAwardEventOptions(category) {
+    const opts = awardPrograms.filter((p) => p.section === category);
+    const html = ['<option value="">' + esc(category ? 'Choose event…' : 'Choose a student first…') + '</option>'];
+    opts.forEach((p) => {
+      html.push(
+        '<option value="' + esc(p.name) + (p.stage === 'Off Stage' ? '" data-stage="off"' : '"') + '>' +
+        esc(p.name) + (p.stage === 'Off Stage' ? ' — Off Stage' : '') +
+        '</option>'
+      );
+    });
+    awardEvent.innerHTML = html.join('');
+  }
+
+  function syncAwardEvents() {
+    const s = awardStudentOf(awardStudent.value);
+    const cat = s ? s.category || sectionOfRosterNo(s.roster_no) || '' : '';
+    if (!s) {
+      awardCategoryNote.textContent = awardStudent.value.trim() ? 'No matching student' : '';
+    } else {
+      awardCategoryNote.textContent = cat ? s.name + ' · ' + cat : s.name + ' · no category set';
+    }
+    if (cat !== lastAwardCategory) {
+      lastAwardCategory = cat;
+      awardEvent.value = '';
+      renderAwardEventOptions(cat || null);
+    }
+  }
+
+  awardStudent.addEventListener('input', syncAwardEvents);
+  awardStudent.addEventListener('change', syncAwardEvents);
 
   awardRank.addEventListener('change', () => {
     const pts = RANK_POINTS[awardRank.value];
@@ -617,14 +946,15 @@
         'Award · ' +
         (rank ? rank + ordinal(rank) + ' · ' : '') +
         (awardEvent.value.trim() || 'Event');
-      await DB.awardPoints(s.id, amount, reason);
-      awardNote('Credited ' + amount + ' FVP to ' + s.name + '.');
+      await DB.awardCoins(s.id, amount, reason);
+      awardNote('Credited ' + amount + ' Coins to ' + s.name + '.');
       loadStudents();
       loadAwardLog();
       awardStudent.value = '';
       awardEvent.value = '';
       awardRank.value = '1';
       awardAmount.value = '25';
+      syncAwardEvents();
     } catch (err) {
       awardNote('Could not credit points.', true);
     }
@@ -680,7 +1010,331 @@
       renderStudentOptions();
       renderStudents();
       loadAwardLog();
+      champStudents = list;
+      renderChamp();
     });
+  }
+
+  /* ------------------------------ schedule ------------------------------ */
+
+  const scheduleForm = document.getElementById('scheduleForm');
+  const schedSection = document.getElementById('schedSection');
+  const schedProgram = document.getElementById('schedProgram');
+  const schedDay = document.getElementById('schedDay');
+  const schedTime = document.getElementById('schedTime');
+  const schedSubmit = document.getElementById('schedSubmit');
+  const schedSubmitLabel = document.getElementById('schedSubmitLabel');
+  const schedSubmitIcon = document.getElementById('schedSubmitIcon');
+  const schedCancel = document.getElementById('schedCancel');
+  const scheduleMsg = document.getElementById('scheduleMsg');
+  const schedList = document.getElementById('schedList');
+
+  const SECTION_ORDER = ['Minor', 'Premier', 'Sub junior', 'General'];
+
+  let scheduleRows = [];
+  let editingScheduleId = null;
+  let dragId = null;
+  let dragRow = null;
+
+  function onStagePrograms(section) {
+    const sec = PROGRAMS.section(section);
+    const stage = sec && sec.stages.find((s) => s.stage === 'On Stage');
+    if (!stage) return [];
+    return stage.items.map((it) => (typeof it === 'string' ? it : it.name));
+  }
+
+  function populateProgramSelect() {
+    if (!schedProgram) return;
+    const list = document.getElementById('schedProgramOptions');
+    if (list) list.innerHTML = '';
+    const opts = onStagePrograms(schedSection.value);
+    opts.forEach((name) => {
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = name;
+      if (list) list.appendChild(o);
+    });
+  }
+
+  async function loadSchedule() {
+    if (!schedList || !DB.isSupabaseConfigured()) return;
+    try {
+      scheduleRows = await DB.getSchedule();
+    } catch (e) {
+      scheduleMsg.textContent = 'Could not load schedule.';
+      return;
+    }
+    renderSchedule();
+  }
+
+  function renderSchedule() {
+    schedList.innerHTML = '';
+    SECTION_ORDER.forEach((section, idx) => {
+      const items = scheduleRows.filter((r) => r.section === section);
+      const head = document.createElement('div');
+      head.className = 'flex items-baseline gap-space-sm mb-space-xs';
+      head.innerHTML =
+        '<span class="font-heading text-title-md font-bold text-on-surface">' +
+        section +
+        '</span>' +
+        '<span class="font-label-code text-label-code uppercase tracking-widest text-on-surface-variant">On Stage</span>';
+      schedList.appendChild(head);
+
+      const ul = document.createElement('ul');
+      ul.className = 'space-y-space-xs';
+      if (items.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'font-body-sm text-body-sm text-on-surface-variant';
+        li.textContent = 'Nothing scheduled for this section yet.';
+        ul.appendChild(li);
+      } else {
+        items.forEach((r) => ul.appendChild(scheduleRow(r, section)));
+        ul.addEventListener('dragover', onScheduleDragOver);
+        ul.addEventListener('drop', onScheduleDrop);
+      }
+      schedList.appendChild(ul);
+    });
+  }
+
+  function onScheduleDragOver(e) {
+    if (dragRow === null) return;
+    const ul = e.currentTarget;
+    if (!ul.contains(dragRow)) return;
+    e.preventDefault();
+    if (!e.dataTransfer) e.dataTransfer = { dropEffect: 'move' };
+    const others = Array.from(ul.querySelectorAll('li')).filter(
+      (li) => li !== dragRow
+    );
+    const after = others.find((li) => {
+      const rect = li.getBoundingClientRect();
+      return e.clientY < rect.top + rect.height / 2;
+    });
+    if (after) ul.insertBefore(dragRow, after);
+    else ul.appendChild(dragRow);
+  }
+
+  async function onScheduleDrop(e) {
+    const ul = e.currentTarget;
+    if (dragRow === null || !ul.contains(dragRow)) return;
+    e.preventDefault();
+    const section = dragRow.dataset.section;
+    const ids = Array.from(ul.querySelectorAll('li')).map((li) => li.dataset.id);
+    dragRow.classList.remove('opacity-40');
+    dragId = null;
+    dragRow = null;
+    await persistScheduleOrder(section, ids);
+  }
+
+  const SLOT_TIMES = {
+    Minor: ['09:00', '09:45', '10:30', '11:15', '12:00', '12:45', '13:30'],
+    Premier: ['14:00', '14:45', '15:30', '16:15', '17:00', '17:45', '18:30'],
+    'Sub junior': ['09:00', '09:45', '10:30', '11:15', '12:00', '12:45', '13:30'],
+    General: ['14:00', '14:45', '15:30', '16:15', '17:00'],
+  };
+  function slotTime(section, position) {
+    const slot = SLOT_TIMES[section];
+    return slot && slot[position - 1] ? slot[position - 1] : '';
+  }
+
+  async function persistScheduleOrder(section, ids) {
+    const rowsById = {};
+    scheduleRows.forEach((r) => {
+      rowsById[r.id] = r;
+    });
+    const retry = async (fn, tries) => {
+      for (let i = 0; i < tries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (i === tries - 1) throw err;
+          await new Promise((res) => setTimeout(res, 500));
+        }
+      }
+    };
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        const row = rowsById[Number(ids[i])];
+        if (!row) continue;
+        if (row.position !== i + 1) {
+          await retry(
+            () =>
+              DB.updateScheduleEntry(row.id, {
+                section: row.section,
+                title: row.title,
+                day: row.day,
+                time: slotTime(row.section, i + 1) || row.time,
+                location: row.location,
+                tag: row.tag,
+                position: i + 1,
+              }),
+            3
+          );
+        }
+      }
+      scheduleMsg.textContent = 'Order saved.';
+      await loadSchedule();
+    } catch (err) {
+      scheduleMsg.textContent = 'Reorder failed — try again.';
+      await loadSchedule();
+    }
+  }
+
+  function scheduleRow(r, section) {
+    const li = document.createElement('li');
+    li.className =
+      'flex items-start gap-space-md bg-surface-container-low border border-white/5 rounded-lg px-space-md py-space-sm';
+    li.dataset.id = r.id;
+    li.dataset.section = section;
+    li.draggable = true;
+
+    const grip = document.createElement('span');
+    grip.className =
+      'grip-handle flex-none self-center cursor-grab text-on-surface-variant hover:text-primary flex items-center justify-center active:cursor-grabbing select-none';
+    grip.innerHTML = '<span class="material-symbols-outlined text-[18px]">drag_indicator</span>';
+    grip.setAttribute('aria-label', 'Drag to reorder');
+    li.appendChild(grip);
+
+    li.addEventListener('dragstart', (e) => {
+      dragId = r.id;
+      dragRow = li;
+      li.classList.add('opacity-40');
+      try {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(r.id));
+      } catch (err) {}
+    });
+    li.addEventListener('dragend', () => {
+      dragId = null;
+      dragRow = null;
+      li.classList.remove('opacity-40');
+    });
+
+    const day = document.createElement('span');
+    day.className =
+      'flex-none w-[4.5rem] font-label-code text-label-code text-primary pt-0.5';
+    day.textContent = 'Day 0' + (r.day || 1) + ' · ' + (r.time || 'TBA');
+    li.appendChild(day);
+
+    const body = document.createElement('div');
+    body.className = 'min-w-0 flex-1';
+    const title = document.createElement('p');
+    title.className = 'font-title-md text-body-sm font-semibold text-on-surface';
+    title.textContent = r.title;
+    body.appendChild(title);
+    li.appendChild(body);
+
+    const actions = document.createElement('div');
+    actions.className = 'flex flex-none items-center gap-space-2xs self-center';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className =
+      'h-9 px-space-md rounded-lg bg-surface-container-high text-on-surface hover:text-primary font-title-md text-body-sm transition-colors inline-flex items-center gap-space-2xs';
+    editBtn.innerHTML =
+      '<span class="material-symbols-outlined text-[15px]">edit</span>Edit';
+    editBtn.addEventListener('click', () => editSchedule(r));
+    actions.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className =
+      'w-9 h-9 rounded-lg bg-surface-container-high text-on-surface hover:text-error font-title-md text-body-sm transition-colors inline-flex items-center justify-center';
+    delBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">delete</span>';
+    delBtn.setAttribute('aria-label', 'Delete entry');
+    delBtn.addEventListener('click', () => deleteScheduleEntry(r.id));
+    actions.appendChild(delBtn);
+
+    li.appendChild(actions);
+    return li;
+  }
+
+  function scheduleFormValues() {
+    return {
+      section: schedSection.value,
+      title: schedProgram.value.trim(),
+      day: Number(schedDay.value),
+      time: schedTime.value,
+    };
+  }
+
+  function nextPositionInSection(section) {
+    const items = scheduleRows.filter((r) => r.section === section);
+    return items.length === 0 ? 1 : 1 + Math.max(...items.map((r) => r.position));
+  }
+
+  function editSchedule(r) {
+    editingScheduleId = r.id;
+    if (SECTION_ORDER.includes(r.section)) schedSection.value = r.section;
+    populateProgramSelect();
+    schedProgram.value = r.title;
+    schedDay.value = String(r.day || 1);
+    schedTime.value = r.time || '';
+    schedSubmitLabel.textContent = 'Save Changes';
+    schedSubmitIcon.textContent = 'save';
+    schedCancel.classList.remove('is-hidden');
+    scheduleMsg.textContent = 'Editing "' + r.title + '".';
+  }
+
+  function cancelScheduleEdit() {
+    editingScheduleId = null;
+    scheduleForm.reset();
+    if (schedDay) schedDay.value = '1';
+    populateProgramSelect();
+    schedSubmitLabel.textContent = 'Add Entry';
+    schedSubmitIcon.textContent = 'add';
+    schedCancel.classList.add('is-hidden');
+    scheduleMsg.textContent = '';
+  }
+
+  if (schedSection) {
+    schedSection.addEventListener('change', populateProgramSelect);
+  }
+
+  scheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = scheduleFormValues();
+    if (!v.title) return;
+    try {
+      if (editingScheduleId) {
+        const row = scheduleRows.find((r) => r.id === editingScheduleId);
+        await DB.updateScheduleEntry(editingScheduleId, {
+          ...v,
+          position: row ? row.position : 1,
+        });
+        scheduleMsg.textContent = 'Entry updated.';
+      } else {
+        const dup = scheduleRows.find(
+          (r) => r.section === v.section && r.title === v.title
+        );
+        if (dup) {
+          scheduleMsg.textContent = 'That programme is already on the schedule.';
+          return;
+        }
+        await DB.addScheduleEntry({ ...v, position: nextPositionInSection(v.section) });
+        scheduleMsg.textContent = 'Entry added.';
+      }
+      cancelScheduleEdit();
+      await loadSchedule();
+    } catch (err) {
+      scheduleMsg.textContent = 'Save failed — try again.';
+    }
+  });
+
+  if (schedCancel) {
+    schedCancel.addEventListener('click', cancelScheduleEdit);
+  }
+
+  async function deleteScheduleEntry(id) {
+    const row = scheduleRows.find((r) => r.id === id);
+    if (!row) return;
+    if (!confirm('Remove "' + row.title + '" from the schedule?')) return;
+    try {
+      await DB.deleteScheduleEntry(id);
+      scheduleMsg.textContent = 'Entry removed.';
+      await loadSchedule();
+    } catch (err) {
+      scheduleMsg.textContent = 'Delete failed — try again.';
+    }
   }
 
   /* --------------------------- store counter role ------------------------- */
@@ -703,8 +1357,10 @@
   const scMsg = document.getElementById('scMsg');
   const scCount = document.getElementById('scCount');
   const scLedger = document.getElementById('scLedger');
+  const scLedgerTitle = document.getElementById('scLedgerTitle');
 
   let scStudent = null;
+  let storeLedgerRows = [];
 
   async function storeBoot() {
     if (tabsBar) tabsBar.classList.add('is-hidden');
@@ -736,11 +1392,12 @@
     scNameOut.textContent = s.name;
     scTeam.textContent = s.team || 'No team';
     scTeam.style.display = s.team ? '' : 'none';
-    scBalance.textContent = s.points;
+    scBalance.textContent = s.coins;
     scCard.classList.remove('hidden');
     scAmount.value = '';
     scReason.value = '';
     scMsgOn('');
+    renderStoreLedgerFor(s);
   }
 
   async function findScToken() {
@@ -789,14 +1446,14 @@
     scCharge.disabled = true;
     try {
       const updated = await DB.deductForStore(scStudent.id, amt, reason);
-      scBalance.textContent = updated.points;
-      scMsgOn('Charged ' + amt + ' FVP — new balance ' + updated.points + '.');
+      scBalance.textContent = updated.coins;
+      scMsgOn('Charged ' + amt + ' Coins — new balance ' + updated.coins + '.');
       scAmount.value = '';
       scReason.value = '';
       loadStoreLedger();
     } catch (e) {
       if (e && e.code === 'INSUFFICIENT') {
-        scMsgOn('Not enough points — balance is ' + e.balance + ' FVP.', true);
+        scMsgOn('Not enough coins — balance is ' + e.balance + '.', true);
       } else {
         scMsgOn('Could not record the purchase. Try again.', true);
       }
@@ -807,11 +1464,19 @@
 
   async function loadStoreLedger() {
     try {
-      const rows = await DB.getLedgerAll();
-      renderStoreLedger(rows.slice(0, 15));
+      storeLedgerRows = await DB.getLedgerAll();
     } catch (e) {
-      renderStoreLedger(null);
+      storeLedgerRows = [];
     }
+    renderStoreLedgerFor(scStudent);
+  }
+
+  function renderStoreLedgerFor(s) {
+    scLedgerTitle.textContent = s ? 'Activity · ' + s.name : 'All activity';
+    const rows = s
+      ? storeLedgerRows.filter((r) => String(r.student_id) === String(s.id))
+      : storeLedgerRows;
+    renderStoreLedger(rows);
   }
 
   function renderStoreLedger(rows) {

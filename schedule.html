@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+    <link rel="shortcut icon" href="assets/img/Logo-.png" type="image/x-icon">
     <meta name="theme-color" content="#051910" />
     <meta
       name="description"
@@ -19,28 +20,8 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
       rel="stylesheet"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      @layer base {
-        html,
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        body {
-          overscroll-behavior: none;
-        }
-      }
-      ::-webkit-scrollbar {
-        display: none;
-      }
-    </style>
     <title>Schedule — Rendezvous '26</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/tailwind-output.css" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
 
@@ -61,15 +42,21 @@
 
         <div class="flex items-center gap-space-sm flex-none">
           <a
-            class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
+            class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
             href="points.html">
-            <span class="material-symbols-outlined text-[16px]">token</span>
-            <span>FESTIVITA POINTS</span>
+            <span class="hidden sm:inline">FESTIVITA POINTS</span>
+            <span class="sm:hidden">POINTS</span>
           </a>
-          <a class="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:scale-105 transition-transform"
+          <a class="hidden lg:flex w-10 h-10 rounded-full bg-primary items-center justify-center hover:scale-105 transition-transform"
             href="admin.html" aria-label="Admin portal">
             <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
           </a>
+          <div id="nav-menu" class="lg:hidden" aria-label="Menu">
+            <a href="admin.html" aria-label="Admin portal">
+              <span class="material-symbols-outlined text-[18px]">person</span>
+              <span>Admin Portal</span>
+            </a>
+          </div>
           <button type="button" id="nav-toggle"
             class="lg:hidden flex w-10 h-10 rounded-lg bg-surface-container-high/80 text-on-surface hover:text-primary items-center justify-center"
             aria-label="Toggle menu" aria-expanded="false">
@@ -103,131 +90,54 @@
             </p>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-space-xl items-start">
-            <article class="rounded-3xl bg-surface-container-low/70 border border-white/5 overflow-hidden shadow-md">
-              <div class="px-space-lg py-space-md border-b border-white/5 flex items-center justify-between gap-space-sm">
-                <div>
-                  <div class="font-label-code text-label-code uppercase tracking-widest text-secondary">Day 01</div>
-                  <h2 class="font-headline-sm text-headline-sm font-bold text-on-surface uppercase tracking-tight">
-                    Saturday · Sept 12
-                  </h2>
-                </div>
-                <span class="material-symbols-outlined text-primary text-[26px] flex-none">today</span>
-              </div>
-              <ol class="divide-y divide-white/5">
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">08:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Registration &amp; Accreditations</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Front Porch · Main Gate</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Inaugural</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">09:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Inaugural Ceremony</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Main Auditorium · Block A</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Ceremony</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">10:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Technical Papers · Session I</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Arena A · Science Block</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Fixture</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">12:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Scientific Poster Display · I</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Exhibition Hall · Block B</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Poster</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">14:00</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Quizzomania · Prelims</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Arena B · Science Block</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Quiz</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">16:00</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Cryptic Photography Hunt</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Campus Grounds · All Post</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Creative</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">18:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Tholvi Prelude · Open Debate</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Amphitheatre · Central Lawn</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Debate</span>
-                </li>
-              </ol>
-            </article>
+          <div
+            class="mb-space-lg flex flex-wrap items-center gap-space-sm"
+            role="group"
+            aria-label="Schedule filters"
+          >
+            <span
+              class="inline-flex items-center gap-space-xs px-space-md py-2 rounded-full bg-surface-container-high/80 text-on-surface-variant font-label-code text-label-code uppercase tracking-widest"
+            >
+              <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+              Filter
+            </span>
 
-            <article class="rounded-3xl bg-surface-container-low/70 border border-white/5 overflow-hidden shadow-md">
-              <div class="px-space-lg py-space-md border-b border-white/5 flex items-center justify-between gap-space-sm">
-                <div>
-                  <div class="font-label-code text-label-code uppercase tracking-widest text-secondary">Day 02</div>
-                  <h2 class="font-headline-sm text-headline-sm font-bold text-on-surface uppercase tracking-tight">
-                    Sunday · Sept 13
-                  </h2>
-                </div>
-                <span class="material-symbols-outlined text-primary text-[26px] flex-none">calendar_month</span>
-              </div>
-              <ol class="divide-y divide-white/5">
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">08:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Morning Assembly</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Open Air Stage · Central Lawn</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Assembly</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">09:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Technical Papers · Session II</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Arena A · Science Block</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Fixture</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">11:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Scientific Poster Display · II</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Exhibition Hall · Block B</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Poster</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">13:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Quizzomania · Finals</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Main Auditorium · Block A</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Quiz</span>
-                </li>
-                <li class="px-space-lg py-space-md flex items-start gap-space-md">
-                  <time class="flex-none w-[4rem] font-label-code text-label-code text-primary pt-0.5">15:30</time>
-                  <div class="min-w-0">
-                    <p class="font-title-md text-title-md font-semibold text-on-surface">Valedictory &amp; Prize Distribution</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Main Auditorium · Block A</p>
-                  </div>
-                  <span class="ml-auto flex-none self-center inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-code text-[10px] uppercase tracking-widest">Ceremony</span>
-                </li>
-              </ol>
-            </article>
+            <div class="relative">
+              <select
+                id="sectionFilter"
+                class="appearance-none cursor-pointer rounded-full bg-surface-container-high text-on-surface font-body-sm text-body-sm pl-4 pr-9 py-2 border border-white/10 focus:outline-none focus:border-primary transition-colors"
+                aria-label="Filter by category"
+              >
+                <option value="all">All categories</option>
+                <option value="Minor">Minor</option>
+                <option value="Premier">Premier</option>
+                <option value="Sub junior">Sub junior</option>
+                <option value="General">General</option>
+              </select>
+              <span
+                class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]"
+              >expand_more</span>
+            </div>
+
+            <div class="relative">
+              <select
+                id="dayFilter"
+                class="appearance-none cursor-pointer rounded-full bg-surface-container-high text-on-surface font-body-sm text-body-sm pl-4 pr-9 py-2 border border-white/10 focus:outline-none focus:border-primary transition-colors"
+                aria-label="Filter by day"
+              >
+                <option value="all">All days</option>
+                <option value="1">Day 01</option>
+                <option value="2">Day 02</option>
+              </select>
+              <span
+                class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]"
+              >expand_more</span>
+            </div>
+
+            <span id="scheduleCount" class="font-label-code text-label-code text-on-surface-variant"></span>
           </div>
+
+          <div id="scheduleRoot" class="grid grid-cols-1 lg:grid-cols-2 gap-space-xl items-start"></div>
         </div>
       </section>
     </main>
@@ -254,7 +164,7 @@
           <span class="material-symbols-outlined text-[16px]">token</span>
           <span>Points</span>
         </a>
-        
+
       </div>
     </nav>
 
@@ -278,6 +188,7 @@
               <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
               <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
               <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
+
               <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
 
             </ul>
@@ -305,6 +216,106 @@
     <script>
       window.RV26.UI.initShell();
     </script>
-  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-6"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a><a href="team-points.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">token</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Points</span></a><a href="admin.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">person</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Admin</span></a></div></nav>
+    <script>
+      (function () {
+        var DB = window.RV26.DB;
+        var root = document.getElementById('scheduleRoot');
+        if (!DB || !window.RV26.isSupabaseConfigured || !root) return;
+        var SECTION_ORDER = ['Minor', 'Premier', 'Sub junior', 'General'];
+        var ICONS = {
+          Minor: 'mic_external_on',
+          Premier: 'stadium',
+          'Sub junior': 'group',
+          General: 'emoji_events',
+        };
+        var sectionFilter = document.getElementById('sectionFilter');
+        var dayFilter = document.getElementById('dayFilter');
+        var countEl = document.getElementById('scheduleCount');
+        var allRows = [];
+
+        function matches(r) {
+          var wantSection = sectionFilter.value;
+          var wantDay = dayFilter.value;
+          if (wantSection !== 'all' && r.section !== wantSection) return false;
+          if (wantDay !== 'all' && (r.day || 1) !== Number(wantDay)) return false;
+          return true;
+        }
+
+        function render() {
+          var html = '';
+          var visible = 0;
+          SECTION_ORDER.forEach(function (section) {
+            var items = allRows.filter(function (r) {
+              return r.section === section && matches(r);
+            });
+            if (!items.length) return;
+            visible += items.length;
+            html +=
+              '<article class="rounded-3xl bg-surface-container-low/70 border border-white/5 overflow-hidden shadow-md">' +
+              '<div class="px-space-lg py-space-md border-b border-white/5 flex items-center justify-between gap-space-sm">' +
+              '<div>' +
+              '<div class="font-label-code text-label-code uppercase tracking-widest text-secondary">On Stage</div>' +
+              '<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface uppercase tracking-tight">' +
+              section +
+              '</h2>' +
+              '</div>' +
+              '<span class="material-symbols-outlined text-primary text-[26px] flex-none">' +
+              (ICONS[section] || 'stages') +
+              '</span>' +
+              '</div>' +
+              '<ol class="divide-y divide-white/5">';
+            items.forEach(function (r) {
+              var timeTxt = r.time ? r.time : 'TBA';
+              html +=
+                '<li class="px-space-lg py-space-md flex items-start gap-space-md">' +
+                '<span class="flex-none w-[6rem] font-label-code text-label-code text-primary pt-0.5">' +
+                'Day 0' +
+                (r.day || 1) +
+                ' · ' +
+                timeTxt +
+                '</span>' +
+                '<div class="min-w-0 flex-1">' +
+                '<p class="font-title-md text-title-md font-semibold text-on-surface">' +
+                r.title +
+                '</p>' +
+                '</div>';
+              html += '</li>';
+            });
+            html += '</ol></article>';
+          });
+
+          if (!visible) {
+            root.innerHTML =
+              '<div class="lg:col-span-2 text-center py-space-2xl">' +
+              '<span class="material-symbols-outlined text-on-surface-variant text-[40px] block mx-auto mb-space-sm">calendar_month</span>' +
+              '<p class="font-body-md text-body-md text-on-surface-variant">No events match those filters.</p>' +
+              '</div>';
+            countEl.textContent = '';
+            return;
+          }
+          root.innerHTML = html;
+          countEl.textContent = visible + (visible === 1 ? ' event' : ' events');
+        }
+
+        sectionFilter.addEventListener('change', render);
+        dayFilter.addEventListener('change', render);
+
+        DB.getSchedule()
+          .then(function (rows) {
+            if (!rows || !rows.length) {
+              root.innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant lg:col-span-2">Schedule is being finalised — check back soon.</p>';
+              return;
+            }
+            allRows = rows;
+            render();
+          })
+          .catch(function () {
+            root.innerHTML =
+              '<p class="font-body-md text-body-md text-on-surface-variant lg:col-span-2">Could not load the schedule right now — please try again.</p>';
+          });
+      })();
+    </script>
+  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-4"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a></div></nav>
 </body>
 </html>

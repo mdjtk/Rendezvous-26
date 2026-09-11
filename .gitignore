@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+package-lock.json
+
+# Tailwind build output (regenerate with npm run build:css)
+css/tailwind-output.css
 
 # Editor directories and files
 .vscode/*

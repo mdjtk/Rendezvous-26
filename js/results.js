@@ -12,19 +12,46 @@
   const searchEl = document.getElementById('result-search');
   const searchClear = document.getElementById('result-search-clear');
   const filtersEl = document.getElementById('filters');
+  const programEl = document.getElementById('program-filter');
   const contentEl = document.getElementById('content');
+
+  const PROGRAMS = window.RV26.PROGRAMS;
 
   let results = [];
   let category = 'all';
+  let program = '';
   let query = '';
 
   const RANK_LABELS = { 1: 'Winner', 2: 'Runner Up', 3: '2nd Runner Up' };
   const RANK_COLORS = { 1: '#e9c46a', 2: '#b8c0cc', 3: '#d19a66' };
 
+  function norm(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  function placeChip(p) {
+    if (!p || !p.participant_name) return '';
+    return (
+      '<span class="poster-place">' +
+      (p.rank
+        ? '<span class="poster-rank" style="--rank:' + RANK_COLORS[p.rank] + '">' +
+          esc(RANK_LABELS[p.rank] || p.rank) +
+          '</span>'
+        : '') +
+      '<span class="poster-place-name">' + esc(p.participant_name) + '</span>' +
+      (p.grade ? '<span class="placement-grade-badge">' + esc(p.grade) + '</span>' : '') +
+      (p.coins ? '<span class="placement-coins-badge">' + esc(p.coins) + ' C</span>' : '') +
+      '</span>'
+    );
+  }
+
   async function load() {
     UI.showLoading(contentEl, 'Loading results…');
     try {
-      results = await DB.getResults();
+      const all = await DB.getResults();
+      results = all.filter((r) => r.published);
       render();
     } catch (e) {
       UI.showError(
@@ -35,40 +62,48 @@
     }
   }
 
-  function categories() {
-    const set = new Set();
-    results.forEach((r) => {
-      if (r.category) set.add(r.category);
-    });
-    return Array.from(set).sort();
-  }
-
   function trimmedQuery() {
     return query.trim().toLowerCase();
+  }
+
+  function placeNames(r) {
+    const names = [];
+    if (r.participant_name) names.push(r.participant_name);
+    if (Array.isArray(r.places)) {
+      r.places.forEach((p) => {
+        if (p && p.participant_name) names.push(p.participant_name);
+      });
+    }
+    return names;
   }
 
   function matchesQuery(r) {
     const q = trimmedQuery();
     if (!q) return true;
-    return [r.name, r.category, r.event_name]
+    return [r.event_name, r.category]
+      .concat(placeNames(r))
       .filter(Boolean)
-      .some((v) => String(v).toLowerCase().includes(q));
+      .some((v) => norm(v).includes(q));
+  }
+
+  function matchesProgram(r) {
+    if (!program) return true;
+    return norm(r.event_name).includes(program);
   }
 
   function filtered() {
     return results.filter((r) => {
-      if (category !== 'all' && r.category !== category) return false;
+      if (category !== 'all' && norm(r.category) !== category) return false;
+      if (!matchesProgram(r)) return false;
       return matchesQuery(r);
     });
   }
 
   function renderChips() {
     filtersEl.innerHTML = '';
-    const cats = categories();
-    if (results.length === 0) return;
-
+    const names = PROGRAMS ? PROGRAMS.sections() : [];
     const opts = [{ value: 'all', label: 'All' }].concat(
-      cats.map((c) => ({ value: c, label: c }))
+      names.map((n) => ({ value: norm(n), label: n }))
     );
 
     opts.forEach((opt) => {
@@ -104,16 +139,15 @@
       '<span class="poster-meta">' +
       '  <span class="poster-event">' + esc(r.event_name) + '</span>' +
       '  <span class="poster-cat">' + esc(r.category || '') + '</span>' +
-      (r.name
-        ? '<span class="poster-name">' +
-          (r.rank
-            ? '<span class="poster-rank" style="--rank:' + RANK_COLORS[r.rank] + '">' +
-              esc(RANK_LABELS[r.rank] || r.rank) +
-              '</span>'
-            : '') +
-          '<span>' + esc(r.name) + '</span>' +
+      (Array.isArray(r.places) && r.places.length
+        ? '<span class="poster-places">' +
+          r.places.map(placeChip).join('') +
           '</span>'
-        : '') +
+        : r.name
+          ? '<span class="poster-name">' +
+            placeChip({ rank: r.rank, participant_name: r.name }) +
+            '</span>'
+          : '') +
       '</span>';
     btn.addEventListener('click', () => onOpen());
     return btn;
@@ -137,6 +171,12 @@
         UI.showEmpty(contentEl, {
           title: 'No matches for "' + esc(query.trim()) + '"',
           hint: 'Try a different name or category, or clear the search.',
+          icon: 'result',
+        });
+      } else if (program) {
+        UI.showEmpty(contentEl, {
+          title: 'Nothing for this programme yet',
+          hint: 'Results for that programme will appear here once the jury signs them off.',
           icon: 'result',
         });
       } else {
@@ -175,6 +215,29 @@
     render();
   });
 
+  if (programEl) {
+    if (PROGRAMS) {
+      PROGRAMS.SECTIONS.forEach((s) => {
+        s.stages.forEach((st) => {
+          if (!st.items.length) return;
+          const og = document.createElement('optgroup');
+          og.label = s.name + ' · ' + st.stage;
+          st.items.forEach((n) => {
+            const o = document.createElement('option');
+            o.value = n;
+            o.textContent = n;
+            og.appendChild(o);
+          });
+          programEl.appendChild(og);
+        });
+      });
+    }
+    programEl.addEventListener('change', () => {
+      program = programEl.value;
+      render();
+    });
+  }
+
   if (searchClear) {
     searchClear.addEventListener('click', () => {
       searchEl.value = '';
@@ -194,4 +257,11 @@
   }
 
   load();
+
+  if (DB.subscribeResults) {
+    DB.subscribeResults((next) => {
+      results = next.filter((r) => r.published);
+      render();
+    });
+  }
 })();

@@ -1,6 +1,6 @@
 /*
  * Rendezvous '26 — Gallery page
- * Renders the uploaded photos as a masonry grid with incremental "load more",
+ * Renders the uploaded photos as a uniform grid with incremental "load more",
  * and opens photos in the shared lightbox.
  */
 (function () {
@@ -38,6 +38,39 @@
     return btn;
   }
 
+  function openLightbox(index) {
+    UI.Lightbox.open(photos.slice(0, shown), index, { downloadLabel: 'Save photo' });
+  }
+
+  function moreButton() {
+    const hasMore = shown < photos.length;
+    const old = document.getElementById('load-more');
+    if (old) old.remove();
+    if (!hasMore) return;
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.id = 'load-more';
+    more.className = 'btn btn-outline';
+    more.textContent = 'Load more';
+    more.style.marginTop = '2.5rem';
+    more.addEventListener('click', () => {
+      shown += PAGE;
+      const grid = contentEl.querySelector('.gallery-grid');
+      const prevShown = shown - PAGE;
+      const visible = photos.slice(prevShown, shown);
+      visible.forEach((p, i) => {
+        const idx = prevShown + i;
+        grid.appendChild(
+          photoCard(p, () => {
+            openLightbox(idx);
+          })
+        );
+      });
+      moreButton();
+    });
+    contentEl.appendChild(more);
+  }
+
   function render() {
     contentEl.innerHTML = '';
 
@@ -51,35 +84,19 @@
     }
 
     const grid = document.createElement('div');
-    grid.className = 'masonry';
+    grid.className = 'gallery-grid';
 
     const visible = photos.slice(0, shown);
     visible.forEach((p, i) => {
       grid.appendChild(
         photoCard(p, () => {
-          UI.Lightbox.open(visible, i, { downloadLabel: 'Save photo' });
+          openLightbox(i);
         })
       );
     });
 
     contentEl.appendChild(grid);
-
-    const hasMore = shown < photos.length;
-    document.getElementById('load-more')?.remove();
-
-    if (hasMore) {
-      const more = document.createElement('button');
-      more.type = 'button';
-      more.id = 'load-more';
-      more.className = 'btn btn-outline';
-      more.textContent = 'Load more';
-      more.style.marginTop = '2.5rem';
-      more.addEventListener('click', () => {
-        shown += PAGE;
-        render();
-      });
-      contentEl.appendChild(more);
-    }
+    moreButton();
   }
 
   load();

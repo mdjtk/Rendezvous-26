@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+    <link rel="shortcut icon" href="assets/img/Logo-.png" type="image/x-icon">
     <meta name="theme-color" content="#051910" />
     <meta
       name="description"
@@ -19,28 +20,8 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
       rel="stylesheet"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      @layer base {
-        html,
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        body {
-          overscroll-behavior: none;
-        }
-      }
-      ::-webkit-scrollbar {
-        display: none;
-      }
-    </style>
     <title>Team Points — Rendezvous '26</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/tailwind-output.css" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
 
@@ -62,15 +43,21 @@
 
         <div class="flex items-center gap-space-sm flex-none">
           <a
-            class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
+            class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high/80 text-primary hover:bg-primary-container hover:text-on-primary-container font-title-md text-body-sm transition-all duration-200 shadow-[0_0_16px_rgba(163,230,53,0.3)]"
             href="points.html">
-            <span class="material-symbols-outlined text-[16px]">token</span>
-            <span>FESTIVITA POINTS</span>
+            <span class="hidden sm:inline">FESTIVITA POINTS</span>
+            <span class="sm:hidden">POINTS</span>
           </a>
-          <a class="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:scale-105 transition-transform"
+          <a class="hidden lg:flex w-10 h-10 rounded-full bg-primary items-center justify-center hover:scale-105 transition-transform"
             href="admin.html" aria-label="Admin portal">
             <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
           </a>
+          <div id="nav-menu" class="lg:hidden" aria-label="Menu">
+            <a href="admin.html" aria-label="Admin portal">
+              <span class="material-symbols-outlined text-[18px]">person</span>
+              <span>Admin Portal</span>
+            </a>
+          </div>
           <button type="button" id="nav-toggle"
             class="lg:hidden flex w-10 h-10 rounded-lg bg-surface-container-high/80 text-on-surface hover:text-primary items-center justify-center"
             aria-label="Toggle menu" aria-expanded="false">
@@ -129,6 +116,7 @@
           <span class="material-symbols-outlined text-[16px]">token</span>
           <span>Points</span>
         </a>
+
       </div>
     </nav>
 
@@ -152,6 +140,7 @@
               <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
               <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
               <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
+
               <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
 
             </ul>
@@ -180,6 +169,6 @@
     <script>
       window.RV26.UI.initShell();
     </script>
-  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-6"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a><a href="team-points.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">token</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Points</span></a><a href="admin.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">person</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Admin</span></a></div></nav>
+  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-4"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a></div></nav>
 </body>
 </html>

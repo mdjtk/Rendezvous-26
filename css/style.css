@@ -1,8 +1,9 @@
 /* ==========================================================================
    Rendezvous '26 — component styles for JS-generated markup & state
-   Tailwind CDN covers layout/typography; this unlayered sheet only styles
-   dynamic markup (lightbox, podium, tables, cards, tabs, admin) and state
-   toggles (.is-hidden, .open, .is-active, animations).
+   Tailwind utilities are in css/tailwind-output.css (built);
+   this sheet only styles dynamic markup (lightbox, podium, tables,
+   cards, tabs, admin) and state toggles (.is-hidden, .open, .is-active,
+   animations).
    ========================================================================== */
 
 html {
@@ -213,9 +214,39 @@ html {
 }
 
 /* mobile nav menu (ui.js toggles .open on #nav-menu) */
+#nav-menu {
+  display: none;
+  position: fixed;
+  top: 6.5rem;
+  left: 10px;
+  right: 10px;
+  z-index: 49;
+  padding: 0.625rem;
+  border-radius: 25px;
+  background: var(--surface-container-low);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
 #nav-menu.open {
   display: flex;
   flex-direction: column;
+}
+
+#nav-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 14px;
+  color: var(--on-surface);
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+
+#nav-menu a:hover {
+  background: var(--surface-container-high);
+  color: var(--primary);
 }
 
 @media (min-width: 1024px) {
@@ -471,20 +502,21 @@ html {
 /* ---------------------------- result posters -------------------------- */
 .poster-grid {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 1.25rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .poster-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .poster-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -494,7 +526,7 @@ html {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
+  border-radius: 0.75rem;
   background: var(--surface-container-lowest);
   text-align: left;
   padding: 0;
@@ -509,8 +541,9 @@ html {
 }
 
 .poster-card img {
+  display: block;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 4;
   object-fit: cover;
 }
 
@@ -541,22 +574,32 @@ html {
   color: var(--primary);
 }
 
-/* ------------------------------- masonry ------------------------------ */
-.masonry {
-  columns: 1;
-  column-gap: 1.25rem;
+/* hide the page header + navs while the lightbox is open */
+body.lightbox-open > header,
+body.lightbox-open > nav,
+body.lightbox-open .fixed {
+  visibility: hidden;
+}
+
+/* ------------------------------- gallery grid --------------------------- */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
   margin-top: 2rem;
 }
 
 @media (min-width: 640px) {
-  .masonry {
-    columns: 2;
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
 }
 
 @media (min-width: 1024px) {
-  .masonry {
-    columns: 3;
+  .gallery-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.125rem;
   }
 }
 
@@ -564,8 +607,7 @@ html {
   position: relative;
   display: block;
   overflow: hidden;
-  break-inside: avoid;
-  margin-bottom: 1.25rem;
+  aspect-ratio: 4 / 3;
   border-radius: var(--radius-lg);
   background: var(--surface-container-lowest);
   cursor: zoom-in;
@@ -573,7 +615,7 @@ html {
 
 .photo-card img {
   width: 100%;
-  display: block;
+  height: 100%;
   object-fit: cover;
   transition: transform 0.4s;
 }
@@ -1341,15 +1383,182 @@ h4 {
       scroll-behavior: auto !important;
     }
   }
-.leaf{
+@media (max-width: 639px) {
+  /* loader — scale the preloader down for phones */
+  #loader img {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+
+  #loader .loader-word {
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+  }
+
+  /* header — floating rounded pill on phones */
+  header {
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    margin: 0;
+    border-radius: 25px;
+  }
+
+  main {
+    padding-top: 6.5rem !important;
+  }
+
+  /* bottom dock nav — floating rounded pill on phones */
+  nav[aria-label="Primary"] {
+    margin: 5px;
+    border-radius: 25px;
+  }
+
+  body > div[aria-hidden="true"] {
+    height: 5rem;
+  }
+
+  #hero {
+    min-height: calc(100vh - 11rem);
+    min-height: calc(100dvh - 15rem);
+  }
+
+  main [id] {
+    scroll-margin-top: 7rem;
+  }
+
+  /* decorative leaf — smaller, tucked to the corner */
+  .leaf {
+    right: -40% !important;
+    rotate: calc(346deg) !important;
+    width: 86% !important;
+    top: 50% !important;
+  }
+
+  /* hero — collapse the hardcoded padding, tighten rhythm */
+  #hero {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+  }
+
+  #hero .flicker {
+    max-width: 100%;
+    padding-top: 6.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  #hero .flicker img {
+    width: min(90%, 350px);
+  }
+
+  #hero p {
+    font-size: clamp(0.9375rem, 4.4vw, 1.0625rem);
+    max-width: 100%;
+    margin-top: 4rem;
+    padding-right: 29%;
+  }
+
+  /* hero backdrops — shrink so they frame, not crowd, the hero */
+  #hero > img[src$="decoding-bw.png"] {
+    height: 70%;
+    right: -20%;
+  }
+
+  #hero > img[src$="sideBranch.png"] {
+    width: 14.3rem;
+  }
+
+  /* date badge — fluid type that tracks the screen width */
+  #hero .date {
+    font-size: clamp(0.5rem, 2.9vw, 0.75rem) !important;
+    padding: clamp(0.35rem, 2.2vw, 0.5rem) clamp(0.55rem, 3.2vw, 0.9rem) !important;
+    letter-spacing: clamp(0.02em, 0.3vw, 0.06em) !important;
+    max-width: 100%;
+  }
+
+  #hero .campus {
+    font-size: clamp(0.5rem, 2.7vw, 0.75rem) !important;
+    letter-spacing: clamp(0.01em, 0.25vw, 0.05em) !important;
+    max-width: 100%;
+  }
+
+  /* brand ticker — shorter band, tighter items */
+  .band-viewport {
+    height: 4.5rem !important;
+  }
+
+  .band-item {
+    font-size: 0.6875rem;
+    padding: 0.375rem 1.25rem;
+    letter-spacing: 0.14em;
+    gap: 0.5rem;
+  }
+
+  /* theme video — full-bleed within its padding */
+  .theme-player {
+    width: 100%;
+  }
+
+  .play-btn .play-label {
+    font-size: 0.6875rem;
+  }
+
+  /* quick access — tighter card and heading on phones */
+  #quick .grid > a {
+    padding: 1.25rem;
+  }
+
+  #quick h3 {
+    font-size: 1.625rem;
+    line-height: 1.2;
+  }
+
+  #quick p,
+  #quick .max-w-xl {
+    max-width: 100%;
+  }
+
+  /* reduce excessive vertical whitespace below the fold */
+  .wave-section,
+  #quick {
+    padding-top: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  /* footer — tighten top margin and stack padding */
+  footer {
+    margin-top: 2.5rem !important;
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .leaf {
+    right: -21% !important;
+    rotate: calc(340deg) !important;
+    width: 38% !important;
+    top: 35% !important;
+  }
+  #hero {
+    padding-left: 3%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .leaf {
     right: -21% !important;
     rotate: calc(336deg) !important;
     width: 41% !important;
     top: 28% !important;
-
-}
-#hero{
-  padding-left: 8%;
+  }
+  #hero {
+    padding-left: 8%;
+  }
 }
 .date{
   background:   #327800 !important;
@@ -1390,20 +1599,22 @@ h4 {
   background:linear-gradient(to top, #062813 0%, #0e3a1c 45%, #1c5417 100%);
   display: inline-block;
   height: 62%;
-  width: 20px;
+  width: 80px;
   position: absolute;
   top: -2%;
+  transform-origin: top;
+  contain: paint;
   animation-name: wave-dance;
   animation-duration: 3s;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
-  will-change: height;
+  will-change: transform;
 }
 
 @keyframes wave-dance {
-  0%   { height: 62%; }
-  50%  { height: 42%; }
-  100% { height: 62%; }
+  0%   { transform: scaleY(1); }
+  50%  { transform: scaleY(0.677); }
+  100% { transform: scaleY(1); }
 }
 
 /* content sits above the wave layer */
@@ -1500,6 +1711,21 @@ h4 {
 
 .play-btn:hover .play-icon {
   transform: scale(1.08);
+}
+
+@media (max-width: 639px) {
+  .play-btn .play-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .play-btn .play-icon {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
 }
 
 .play-btn .play-label {
@@ -1978,6 +2204,32 @@ h4 {
   margin-top: 1rem;
 }
 
+.result-prog {
+  margin-top: 1rem;
+  max-width: 22rem;
+  width: 100%;
+  padding: 0.625rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.result-prog:focus {
+  border-color: rgba(163, 230, 53, 0.55);
+  box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.12), 0 0 24px rgba(163, 230, 53, 0.12);
+}
+
+.result-prog option,
+.result-prog optgroup {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
 .result-count {
   margin-top: 1.75rem;
   font-family: var(--font-label);
@@ -2017,6 +2269,61 @@ h4 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.poster-places {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.poster-place {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.poster-place-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.placement-grade-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-family: var(--font-label);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(163, 230, 53, 0.15);
+  color: #a3e635;
+}
+
+.placement-coins-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-family: var(--font-label);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
 }
 
 /* ==========================================================================
@@ -2194,6 +2501,13 @@ h4 {
   color: var(--on-surface-variant);
 }
 
+.student-coins {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #fbbf24;
+}
+
 .student-actions {
   display: flex;
   flex: none;
@@ -2340,3 +2654,18 @@ h4 {
   }
 }
 
+.mar{
+  padding-top: 1rem !important;
+}
+
+/* bottom navigation — lay links out in a single row */
+nav[aria-label="Primary"] > div.grid {
+  grid-auto-flow: column;
+}
+
+.adm-hero{
+  min-height: 15vh !important;
+}
+#adminDash{
+  margin-top: .25rem !important;
+}

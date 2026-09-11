@@ -170,7 +170,11 @@
     );
     const row = rows[0];
     if (row && row.photo_path) {
-      await sbRemoveObjects(C().STORAGE_BUCKETS.gallery, [row.photo_path]);
+      try {
+        await sbRemoveObjects(C().STORAGE_BUCKETS.gallery, [row.photo_path]);
+      } catch (e) {
+        /* best effort — storage permission may deny removal; row deletion must still succeed */
+      }
     }
     await sbDelete('gallery', id);
   }
@@ -200,6 +204,36 @@
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
 
+  async function addResults(eventName, category, file, placements) {
+    requireConfigured();
+    const path = uniquePath('posters', file);
+    await sbUpload(C().STORAGE_BUCKETS.results, path, file);
+    const places = placements
+      .filter((p) => p && p.participant_name)
+      .map((p) => ({
+        rank: p.rank ? Number(p.rank) : null,
+        participant_name: String(p.participant_name).trim(),
+        grade: p.grade || null,
+        coins: Math.max(0, Math.floor(+p.coins || 0)) || null,
+      }));
+    const rankPoints = {};
+    placements.forEach((p) => {
+      if (p.rank && p.points) rankPoints[String(p.rank)] = Number(p.points);
+    });
+    const first = places[0] || {};
+    const row = await sbInsert('results', {
+      event_name: eventName,
+      category: category || null,
+      participant_name: first.participant_name || null,
+      rank: first.rank || null,
+      places: places.length ? places : null,
+      poster_path: path,
+      points: Object.keys(rankPoints).length ? rankPoints : null,
+      published: false,
+    });
+    return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
+  }
+
   async function deleteResult(id) {
     requireConfigured();
     const rows = await sbGet('results', 'created_at', false).then((r) =>
@@ -207,9 +241,102 @@
     );
     const row = rows[0];
     if (row && row.poster_path) {
-      await sbRemoveObjects(C().STORAGE_BUCKETS.results, [row.poster_path]);
+      try {
+        await sbRemoveObjects(C().STORAGE_BUCKETS.results, [row.poster_path]);
+      } catch (e) {
+        /* best effort — storage permission may deny removal; row deletion must still succeed */
+      }
     }
     await sbDelete('results', id);
+  }
+
+  async function getResultsCounts() {
+    requireConfigured();
+    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/results?select=id,published`, {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const rows = await res.json();
+    return {
+      total: rows.length,
+      published: rows.filter((r) => r.published).length,
+      pending: rows.filter((r) => !r.published).length,
+    };
+  }
+
+  async function publishResults(limit) {
+    requireConfigured();
+    let query = 'results?published=eq.false&select=*&order=created_at.asc';
+    if (limit > 0) query += '&limit=' + limit;
+    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${query}`, { headers: headers() });
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const toPublish = await res.json();
+    if (toPublish.length === 0) return { published: 0, teams: await getTeams() };
+
+    const allStudents = await getStudents();
+    const studentByName = new Map();
+    allStudents.forEach((s) => studentByName.set(cleanName(s.name).toLowerCase(), s));
+
+    const allTeams = await getTeams();
+    const teamByName = new Map();
+    allTeams.forEach((t) => teamByName.set(t.name.toLowerCase(), t));
+
+    const teamDeltas = {};
+    const studentUpdates = [];
+
+    for (const result of toPublish) {
+      if (result.places) {
+        for (const place of result.places) {
+          if (!place.participant_name || !place.rank) continue;
+          const pts = result.points ? result.points[String(place.rank)] : 0;
+          const placeCoins = Math.max(0, Math.floor(+place.coins || 0));
+          const student = studentByName.get(cleanName(place.participant_name).toLowerCase());
+
+          // Award team points
+          if (pts && student && student.team) {
+            const team = teamByName.get(student.team.toLowerCase());
+            if (team) teamDeltas[team.id] = (teamDeltas[team.id] || 0) + pts;
+          }
+
+          // Award individual champ points + coins to student
+          if (student) {
+            const champPts = pts || 0;
+            studentUpdates.push({
+              id: student.id,
+              champPts: champPts,
+              coins: placeCoins,
+              reason: 'Result · ' + place.rank + ordinal(place.rank) + ' · ' + result.event_name,
+            });
+          }
+        }
+      }
+      await sbUpdate('results', result.id, { published: true });
+    }
+
+    for (const [teamId, delta] of Object.entries(teamDeltas)) {
+      const team = allTeams.find((t) => String(t.id) === String(teamId));
+      if (team) await setTeamPoints(team.id, team.points + delta);
+    }
+
+    for (const u of studentUpdates) {
+      if (u.champPts) {
+        await withPointsUpdate(u.id, (p) => p + u.champPts);
+      }
+      if (u.coins) {
+        await withCoinsUpdate(u.id, (c) => c + u.coins);
+        await pushLedger(u.id, u.coins, u.reason);
+      }
+    }
+
+    return { published: toPublish.length, teams: await getTeams() };
+  }
+
+  function ordinal(n) {
+    n = Number(n);
+    if (n === 1) return 'st';
+    if (n === 2) return 'nd';
+    if (n === 3) return 'rd';
+    return 'th';
   }
 
   /* ------------------------------ realtime ---------------------------- */
@@ -256,7 +383,7 @@
 
   // lines: array of raw roster lines, e.g. "1001. Ziyad Abdulkareem". A
   // leading number (when present) becomes the student's roster_no and QR token.
-  async function addStudentsBulk(lines, team) {
+  async function addStudentsBulk(lines, team, category) {
     requireConfigured();
     const entries = (lines || [])
       .map(cleanName)
@@ -275,15 +402,26 @@
       const taken = num && used.has(String(num).toUpperCase());
       const token = taken ? genToken(used) : num ? String(num) : genToken(used);
       used.add(token.toUpperCase());
+      const derived = num ? sectionForRosterNo(Number(num)) : null;
       return {
         name,
         team: team || null,
+        category: category || derived || null,
         qr_token: token,
         roster_no: !taken && num ? Number(num) : null,
       };
     });
     await sbInsertAll('students', rows);
     return rows.length;
+  }
+
+  // 1001 → 'Minor', 2001 → 'Premier', 3001 → 'Sub junior', 4001 → 'General'
+  function sectionForRosterNo(n) {
+    if (n >= 4000) return 'General';
+    if (n >= 3000) return 'Sub junior';
+    if (n >= 2000) return 'Premier';
+    if (n >= 1000) return 'Minor';
+    return null;
   }
 
   async function deleteStudent(id) {
@@ -353,36 +491,50 @@
     return sbUpdate('students', id, { points: next });
   }
 
-  // Credits points and writes an award ledger row.
-  async function awardPoints(studentId, amount, reason) {
+  async function withCoinsUpdate(id, apply) {
+    requireConfigured();
+    const res = await fetch(
+      `${C().SUPABASE_URL}/rest/v1/students?id=eq.${id}&select=*`,
+      { headers: headers() }
+    );
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const rows = await res.json();
+    const student = rows[0];
+    if (!student) throw new Error('Student not found');
+    const next = apply(student.coins);
+    return sbUpdate('students', id, { coins: next });
+  }
+
+  // Credits coins and writes an award ledger row.
+  async function awardCoins(studentId, amount, reason) {
     const amt = Math.max(0, Math.floor(+amount || 0));
-    if (!amt) return withPointsUpdate(studentId, (p) => p);
-    const updated = await withPointsUpdate(studentId, (p) => p + amt);
+    if (!amt) return withCoinsUpdate(studentId, (c) => c);
+    const updated = await withCoinsUpdate(studentId, (c) => c + amt);
     await pushLedger(studentId, amt, cleanName(reason) || 'Award');
     return updated;
   }
 
-  // Debits points at the counter. Throws { code: 'INSUFFICIENT' } if the
+  // Debits coins at the counter. Throws { code: 'INSUFFICIENT' } if the
   // student cannot cover the amount — re-checked at the moment of purchase.
   async function deductForStore(studentId, amount, reason) {
     const amt = Math.max(0, Math.floor(+amount || 0));
     if (!amt) throw new Error('Enter a valid amount');
     let updated;
     await (async () => {
-      updated = await withPointsUpdate(studentId, (p) => {
-        if (p < amt) throw { code: 'INSUFFICIENT', balance: p, need: amt };
-        return p - amt;
+      updated = await withCoinsUpdate(studentId, (c) => {
+        if (c < amt) throw { code: 'INSUFFICIENT', balance: c, need: amt };
+        return c - amt;
       });
     })();
     await pushLedger(studentId, -amt, cleanName(reason) || 'Store purchase');
     return updated;
   }
 
-  // Manual +/− tweak in admin (negative allowed).
-  async function adjustPoints(studentId, delta, reason) {
+  // Manual +/− coin tweak in admin (negative allowed).
+  async function adjustCoins(studentId, delta, reason) {
     const d = Math.floor(+delta || 0);
-    if (!d) return withPointsUpdate(studentId, (p) => p);
-    const updated = await withPointsUpdate(studentId, (p) => p + d);
+    if (!d) return withCoinsUpdate(studentId, (c) => c);
+    const updated = await withCoinsUpdate(studentId, (c) => c + d);
     await pushLedger(studentId, d, cleanName(reason) || 'Adjustment');
     return updated;
   }
@@ -392,7 +544,7 @@
     const poll = async () => {
       try {
         const students = await getStudents();
-        const key = JSON.stringify(students.map((s) => [s.id, s.points]));
+        const key = JSON.stringify(students.map((s) => [s.id, s.points, s.coins]));
         if (key !== last) {
           last = key;
           onChange(students);
@@ -406,6 +558,105 @@
     return () => clearInterval(timer);
   }
 
+  function subscribeResults(onChange) {
+    let last = null;
+    const poll = async () => {
+      try {
+        const list = await getResults();
+        const key = JSON.stringify(
+          list.map((r) => [
+            r.id,
+            r.poster_path,
+            r.event_name,
+            r.category,
+            r.published,
+            r.created_at,
+            r.participant_name,
+            JSON.stringify(r.places || null),
+            JSON.stringify(r.points || null),
+          ])
+        );
+        if (key !== last) {
+          last = key;
+          onChange(list);
+        }
+      } catch (e) {
+        /* ignore transient errors */
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 10000);
+    return () => clearInterval(timer);
+  }
+
+  /* ----------------------- programme list ----------------------- */
+
+  async function getPrograms() {
+    requireConfigured();
+    const rows = await sbGet('programs', 'id', true);
+    rows.sort(
+      (a, b) =>
+        a.section_order - b.section_order ||
+        (a.stage === 'On Stage' ? 0 : 1) - (b.stage === 'On Stage' ? 0 : 1) ||
+        a.position - b.position
+    );
+    return rows;
+  }
+
+  /* ------------------------- schedule ------------------------- */
+
+  async function sbDelete(table, id) {
+    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error('Delete failed (' + res.status + ')');
+  }
+
+  async function getSchedule() {
+    requireConfigured();
+    const rows = await sbGet('schedule', 'position', true);
+    const order = { Minor: 1, Premier: 2, 'Sub junior': 3, General: 4 };
+    rows.sort(
+      (a, b) =>
+        (order[a.section] || 0) - (order[b.section] || 0) ||
+        a.position - b.position ||
+        a.day - b.day
+    );
+    return rows;
+  }
+
+  async function addScheduleEntry(row) {
+    requireConfigured();
+    return sbInsert('schedule', {
+      day: row.day,
+      time: row.time || '',
+      title: row.title,
+      location: row.location || null,
+      tag: row.tag || null,
+      position: row.position,
+      section: row.section || null,
+    });
+  }
+
+  async function updateScheduleEntry(id, patch) {
+    requireConfigured();
+    await sbUpdate('schedule', id, {
+      day: patch.day,
+      time: patch.time || '',
+      title: patch.title,
+      location: patch.location || null,
+      tag: patch.tag || null,
+      position: patch.position,
+      section: patch.section || null,
+    });
+  }
+
+  async function deleteScheduleEntry(id) {
+    requireConfigured();
+    await sbDelete('schedule', id);
+  }
+
   window.RV26.DB = {
     getTeams,
     setTeamPoints,
@@ -416,7 +667,10 @@
     deletePhoto,
     getResults,
     addResult,
+    addResults,
     deleteResult,
+    getResultsCounts,
+    publishResults,
     subscribeTeams,
     getStudents,
     addStudentsBulk,
@@ -425,10 +679,16 @@
     getStudentByName,
     getLedger,
     getLedgerAll,
-    awardPoints,
+    awardCoins,
     deductForStore,
-    adjustPoints,
+    adjustCoins,
     subscribeStudents,
+    subscribeResults,
+    getPrograms,
+    getSchedule,
+    addScheduleEntry,
+    updateScheduleEntry,
+    deleteScheduleEntry,
     isSupabaseConfigured: configured,
   };
 })();

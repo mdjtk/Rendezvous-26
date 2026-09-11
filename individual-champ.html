@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#051910" />
     <meta
       name="description"
-      content="Published result posters from Rendezvous '26 — streamed live as juries sign them off."
+      content="Individual champion standings for Rendezvous '26 — top performers across the confluence."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
       rel="stylesheet"
     />
-    <title>Results — Rendezvous '26</title>
+    <title>Individual Champions — Rendezvous '26</title>
     <link rel="stylesheet" href="css/tailwind-output.css" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
@@ -28,8 +28,9 @@
   <body
     class="bg-background font-body-md text-body-md text-on-background relative selection:bg-primary-container selection:text-on-primary-container min-h-screen"
   >
+
     <div class="ambient-bg" aria-hidden="true"></div>
-    
+
     <header
       class="fixed top-0 w-full z-50  shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div
@@ -75,40 +76,17 @@
             <div
               class="inline-flex items-center gap-space-xs font-label-code text-label-code uppercase tracking-widest text-secondary mb-space-xs"
             >
-              <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-              </span>
-              <span>Live Published Results</span>
+              <span class="material-symbols-outlined text-[15px]">leaderboard</span>
+              <span>Individual Confluence Scoring</span>
             </div>
             <h1
               class="font-headline-lg text-headline-lg font-bold text-on-background uppercase tracking-tight"
             >
-              Result Posters
+              Individual Champions
             </h1>
             <p class="font-body-md text-body-md text-on-surface-variant max-w-lg mt-space-xs">
-              Results stream in live as the juries sign them off. Open any poster to view it in
-              full.
+              Top individual performers across all events. Points are earned when results are published.
             </p>
-</div>
-          <div class="result-toolbar">
-            <label class="result-search" for="result-search">
-              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">search</span>
-              <input
-                id="result-search"
-                type="search"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Search your name or a category…"
-              />
-              <span id="result-search-clear" class="result-search-clear" role="button" tabindex="0" aria-label="Clear search">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-              </span>
-            </label>
-            <div id="filters" class="chip-row" aria-label="Filter results by category"></div>
-            <select id="program-filter" class="result-prog" aria-label="Filter by programme" title="Filter by programme">
-              <option value="">All programmes</option>
-            </select>
           </div>
           <div id="content"></div>
         </div>
@@ -137,7 +115,10 @@
           <span class="material-symbols-outlined text-[16px]">token</span>
           <span>Points</span>
         </a>
-
+        <a href="individual-champ.html">
+          <span class="material-symbols-outlined text-[16px]">emoji_events</span>
+          <span>Champ</span>
+        </a>
       </div>
     </nav>
 
@@ -161,9 +142,8 @@
               <li><a class="hover:text-primary transition-colors" href="results.html">Results</a></li>
               <li><a class="hover:text-primary transition-colors" href="schedule.html">Schedule</a></li>
               <li><a class="hover:text-primary transition-colors" href="team-points.html">Team Points</a></li>
-
+              <li><a class="hover:text-primary transition-colors" href="individual-champ.html">Individual Champions</a></li>
               <li><a class="hover:text-primary transition-colors" href="gallery.html">Media Archive</a></li>
-
             </ul>
           </div>
 
@@ -183,14 +163,13 @@
       </div>
     </footer>
 
-<script src="js/config.js"></script>
-    <script src="js/programs.js"></script>
+    <script src="js/config.js"></script>
     <script src="js/db.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/results.js"></script>
+    <script src="js/individual-champ.js"></script>
     <script>
       window.RV26.UI.initShell();
     </script>
-  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-4"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a></div></nav>
-</body>
+  <div aria-hidden="true" class="h-16 lg:hidden"></div><nav aria-label="Primary" class="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-white/10 bg-surface/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"><div class="mx-auto grid w-full max-w-md grid-cols-5"><a href="index.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">home</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Home</span></a><a href="results.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">bar_chart</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Results</span></a><a href="schedule.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">calendar_month</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Schedule</span></a><a href="gallery.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-on-surface-variant transition-colors hover:text-primary"><span class="material-symbols-outlined text-[21px] leading-none">photo_library</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Gallery</span></a><a href="individual-champ.html" class="flex flex-col items-center justify-center gap-[3px] py-2 text-primary transition-colors hover:text-primary" aria-current="page"><span class="material-symbols-outlined text-[21px] leading-none">emoji_events</span><span class="font-title-md text-[9px] font-bold uppercase tracking-[0.14em]">Champ</span></a></div></nav>
+  </body>
 </html>

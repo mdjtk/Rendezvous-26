@@ -56,7 +56,7 @@
     $('wallet-name').textContent = s.name;
     $('wallet-team').textContent = s.team || 'No team';
     $('wallet-team').style.display = s.team ? '' : 'none';
-    $('wallet-points').textContent = s.points;
+    $('wallet-points').textContent = s.coins;
 
     const list = $('ledger');
     ui.showLoading(list, 'Loading activity…');
@@ -91,7 +91,7 @@
           (pos ? '+' : '−') +
           Math.abs(r.delta) +
           '</span>' +
-          '<span class="ledger-reason">' + esc(r.reason || 'Festivita point') + '</span>' +
+          '<span class="ledger-reason">' + esc(r.reason || 'Festivita coin') + '</span>' +
           '<span class="ledger-date">' + esc(date) + '</span>' +
           '</li>'
         );

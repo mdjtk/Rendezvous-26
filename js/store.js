@@ -60,7 +60,7 @@
     $('wallet-name').textContent = s.name;
     $('wallet-team').textContent = s.team || 'No team';
     $('wallet-team').style.display = s.team ? '' : 'none';
-    $('wallet-points').textContent = s.points;
+    $('wallet-points').textContent = s.coins;
 
     const list = $('ledger');
     ui.showLoading(list, 'Loading activity…');
@@ -96,7 +96,7 @@
           (pos ? '+' : '−') +
           Math.abs(r.delta) +
           '</span>' +
-          '<span class="ledger-reason">' + esc(r.reason || 'Festivita point') + '</span>' +
+          '<span class="ledger-reason">' + esc(r.reason || 'Festivita coin') + '</span>' +
           '<span class="ledger-date">' + esc(date) + '</span>' +
           '</li>'
         );
@@ -185,7 +185,7 @@
     btn.disabled = true;
     try {
       const updated = await db.deductForStore(student.id, amt, reason);
-      $('wallet-points').textContent = updated.points;
+      $('wallet-points').textContent = updated.coins;
       $('amount').value = '';
       $('reason').value = '';
       purchaseOk(true);
@@ -197,7 +197,7 @@
       }
     } catch (e) {
       if (e && e.code === 'INSUFFICIENT') {
-        purchaseError('Not enough points — balance is ' + e.balance + ' FVP.');
+        purchaseError('Not enough coins — balance is ' + e.balance + '.');
       } else {
         purchaseError('Could not record the purchase. Try again.');
       }
