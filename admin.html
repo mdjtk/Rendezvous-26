@@ -3,8 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
-    <link rel="shortcut icon" href="assets/img/Logo-.png" type="image/x-icon">
+    <link rel="icon" type="image/png" href="assets/img/Logo-.png" />
     <meta name="theme-color" content="#051910" />
     <meta
       name="description"
@@ -37,8 +36,8 @@
         class="h-20 w-full px-gutter-mobile md:px-gutter-desktop lg:px-margin-desktop flex items-center justify-between gap-space-md relative">
         <a href="index.html" class="flex items-center gap-space-sm min-w-0" aria-label="Rendezvous '26 home">
           <img src="assets/img/Logo-.png" alt="" class="h-8 w-8 sm:h-9 sm:w-9 flex-none object-contain">
-          <img src="assets/img/rendezvous.png" alt="Rendezvous '26"
-            class="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+          <img src="assets/img/rendezvous.webp" alt="Rendezvous '26"
+            class="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)] logo" />
         </a>
 
         <div class="flex items-center gap-space-sm flex-none">
@@ -257,7 +256,31 @@
                 </label>
                 <input id="photoInput" type="file" accept="image/*" multiple class="hidden" />
               </div>
+              <div
+                class="flex flex-col gap-space-sm md:flex-row md:items-end md:gap-space-md"
+              >
+                <div class="flex-1 min-w-0">
+                  <label
+                    for="photoSearch"
+                    class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block mb-space-xs"
+                    >Search photos</label
+                  >
+                  <input
+                    id="photoSearch"
+                    type="search"
+                    placeholder="Find a photo by caption…"
+                    class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                  />
+                </div>
+                <p id="photoCount" class="admin-count shrink-0" aria-live="polite"></p>
+              </div>
               <div id="photoGrid" class="admin-grid"></div>
+              <div id="photoPager" class="admin-pager is-hidden">
+                <button type="button" id="photoLoadMore" class="admin-more">
+                  <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                  <span>Load More</span>
+                </button>
+              </div>
             </div>
 
             <div id="panel-results" class="panel is-hidden space-y-space-lg">
@@ -321,6 +344,9 @@
                     for="posterInput"
                     id="posterLabel"
                     class="poster-drop"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Upload result poster"
                   >
                     <img
                       id="posterPreview"
@@ -359,7 +385,48 @@
                   </button>
                 </div>
               </form>
+              <div
+                class="flex flex-col gap-space-sm md:flex-row md:items-end md:gap-space-md"
+              >
+                <div class="flex-1 min-w-0">
+                  <label
+                    for="resultSearch"
+                    class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block mb-space-xs"
+                    >Search results</label
+                  >
+                  <input
+                    id="resultSearch"
+                    type="search"
+                    placeholder="Search by event or result…"
+                    class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                  />
+                </div>
+                <div class="md:w-44 shrink-0">
+                  <label
+                    for="resultCatFilter"
+                    class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block mb-space-xs"
+                    >Category</label
+                  >
+                  <select
+                    id="resultCatFilter"
+                    class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                  >
+                    <option value="">All categories</option>
+                    <option value="Minor">Minor</option>
+                    <option value="Premier">Premier</option>
+                    <option value="Sub junior">Sub junior</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+                <p id="resultCount" class="admin-count shrink-0" aria-live="polite"></p>
+              </div>
               <div id="resultGrid" class="admin-grid"></div>
+              <div id="resultPager" class="admin-pager is-hidden">
+                <button type="button" id="resultLoadMore" class="admin-more">
+                  <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                  <span>Load More</span>
+                </button>
+              </div>
             </div>
 
             <div id="panel-teams" class="panel is-hidden space-y-space-lg">
@@ -771,7 +838,7 @@
           <div class="space-y-space-sm">
             <div class="flex items-center gap-space-sm">
               <img src="assets/img/Logo-.png" alt="" class="h-6 w-6 flex-none object-contain">
-              <img src="assets/img/rendezvous.png" alt="Rendezvous '26" class="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
+              <img src="assets/img/rendezvous.webp" alt="Rendezvous '26" class="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_8px_24px_rgba(163,230,53,0.25)]" />
             </div>
             <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed max-w-xs">
               An avant-garde scientific confluence by Jamia Madeenathunnoor, Poonoor, Calicut.

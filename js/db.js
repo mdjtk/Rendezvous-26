@@ -37,6 +37,52 @@
     return res.json();
   }
 
+  /*
+   * Generic paginated/filtered read against PostgREST.
+   * opts:
+   *   select    — column list ("*" by default)
+   *   order     — column to order by (default created_at)
+   *   ascending — false → desc
+   *   limit     — page size
+   *   offset    — page start
+   *   filters   — { col: value } → col=eq.value  or  { col: { ilike: 'term' } }
+   *   count     — true adds Prefer: count=exact and returns { data, count }
+   * With count:false returns a plain array (backward compatible with sbGet).
+   */
+  async function sbQuery(table, opts) {
+    const o = opts || {};
+    const params = ['select=' + (o.select || '*')];
+    const order = o.order || 'created_at';
+    const dir = o.ascending ? 'asc' : 'desc';
+    params.push('order=' + order + '.' + dir + '.nullslast');
+    if (o.limit != null) params.push('limit=' + Number(o.limit));
+    if (o.offset != null) params.push('offset=' + Number(o.offset));
+    if (o.filters) {
+      Object.keys(o.filters).forEach((col) => {
+        const f = o.filters[col];
+        if (f === null || f === undefined || f === '') return;
+        if (typeof f === 'object') {
+          Object.keys(f).forEach((op) => params.push(col + '=' + op + '.' + encodeURIComponent(f[op])));
+        } else {
+          params.push(col + '=eq.' + encodeURIComponent(String(f)));
+        }
+      });
+    }
+    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?${params.join('&')}`, {
+      headers: o.count ? { ...headers(), Prefer: 'count=exact' } : headers(),
+    });
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const data = await res.json();
+    if (!o.count) return data;
+    let count = Array.isArray(data) ? data.length : 0;
+    const range = res.headers.get('Content-Range');
+    if (range) {
+      const m = range.match(/\/(\d+)$/);
+      if (m) count = parseInt(m[1], 10);
+    }
+    return { data: data || [], count };
+  }
+
   async function sbInsert(table, row) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
@@ -152,6 +198,29 @@
     }));
   }
 
+  async function getGalleryPage(opts) {
+    requireConfigured();
+    const o = opts || {};
+    const filters = {};
+    if (o.search) filters.caption = { ilike: '*' + o.search + '*' };
+    const { data, count } = await sbQuery('gallery', {
+      select: 'id,photo_path,caption,created_at',
+      order: 'created_at',
+      ascending: false,
+      limit: o.limit,
+      offset: o.offset,
+      filters,
+      count: true,
+    });
+    return {
+      data: (data || []).map((r) => ({
+        ...r,
+        url: publicUrl(C().STORAGE_BUCKETS.gallery, r.photo_path),
+      })),
+      count,
+    };
+  }
+
   async function addPhoto(file, caption) {
     requireConfigured();
     const path = uniquePath('photos', file);
@@ -188,6 +257,31 @@
       ...r,
       url: publicUrl(C().STORAGE_BUCKETS.results, r.poster_path),
     }));
+  }
+
+  async function getResultsPage(opts) {
+    requireConfigured();
+    const o = opts || {};
+    const filters = {};
+    if (o.published === true || o.published === false) filters.published = o.published;
+    if (o.category) filters.category = o.category;
+    if (o.search) filters.event_name = { ilike: '*' + o.search + '*' };
+    const { data, count } = await sbQuery('results', {
+      select: 'id,event_name,category,participant_name,rank,poster_path,published,created_at',
+      order: 'created_at',
+      ascending: false,
+      limit: o.limit,
+      offset: o.offset,
+      filters,
+      count: true,
+    });
+    return {
+      data: (data || []).map((r) => ({
+        ...r,
+        url: publicUrl(C().STORAGE_BUCKETS.results, r.poster_path),
+      })),
+      count,
+    };
   }
 
   async function addResult(eventName, category, file, name, rank) {
@@ -252,15 +346,17 @@
 
   async function getResultsCounts() {
     requireConfigured();
-    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/results?select=id,published`, {
-      headers: headers(),
+    const total = await sbQuery('results', { select: 'id', limit: 1, count: true });
+    const published = await sbQuery('results', {
+      select: 'id',
+      filters: { published: true },
+      limit: 1,
+      count: true,
     });
-    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
-    const rows = await res.json();
     return {
-      total: rows.length,
-      published: rows.filter((r) => r.published).length,
-      pending: rows.filter((r) => !r.published).length,
+      total: total.count,
+      published: published.count,
+      pending: Math.max(0, total.count - published.count),
     };
   }
 
@@ -663,9 +759,11 @@
     addTeam,
     deleteTeam,
     getGallery,
+    getGalleryPage,
     addPhoto,
     deletePhoto,
     getResults,
+    getResultsPage,
     addResult,
     addResults,
     deleteResult,

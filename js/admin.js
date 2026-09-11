@@ -123,51 +123,74 @@
 
   /* ------------------------------- photos ------------------------------- */
 
+  const PHOTO_PAGE = 24;
+
   const photoGrid = document.getElementById('photoGrid');
   const photoInput = document.getElementById('photoInput');
   const photoCaption = document.getElementById('photoCaption');
+  const photoSearch = document.getElementById('photoSearch');
+  const photoCount = document.getElementById('photoCount');
+  const photoPager = document.getElementById('photoPager');
+  const photoLoadMore = document.getElementById('photoLoadMore');
+  let photoTotal = 0;
+  let photoOffset = 0;
+  let photoSearchText = '';
 
   async function loadPhotos() {
     try {
-      const gallery = await DB.getGallery();
-      renderPhotos(gallery);
+      const page = await DB.getGalleryPage({
+        limit: PHOTO_PAGE,
+        offset: photoOffset,
+        search: photoSearchText || undefined,
+      });
+      photoTotal = page.count;
+      renderPhotos(page.data, photoOffset === 0);
     } catch (err) {
       UI.showError(photoGrid, 'Could not load photos.', () => loadPhotos());
     }
   }
 
-  function renderPhotos(gallery) {
-    photoGrid.innerHTML = '';
-    if (gallery.length === 0) {
+  function renderPhotos(gallery, isFirst) {
+    if (isFirst) photoGrid.innerHTML = '';
+    if (gallery.length === 0 && isFirst) {
       photoGrid.appendChild(
         UI.emptyState({
-          title: 'No photos uploaded',
-          hint: 'Use the button above to add photos from the festival floor.',
+          title: photoSearchText ? 'No photos matched' : 'No photos uploaded',
+          hint: photoSearchText
+            ? 'Try a different caption search.'
+            : 'Use the button above to add photos from the festival floor.',
           icon: 'photo',
         })
       );
-      return;
-    }
-    gallery.forEach((p) => {
-      const card = document.createElement('div');
-      card.className = 'admin-item';
-      card.innerHTML =
-        '<img src="' + esc(p.url) + '" alt="' + esc(p.caption || 'Festival photo') + '" loading="lazy" />' +
-        (p.caption ? '<span class="admin-item-cap">' + esc(p.caption) + '</span>' : '') +
-        '<button type="button" class="admin-del" aria-label="Delete photo">' +
-        '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-        '</button>';
-      card.querySelector('.admin-del').addEventListener('click', async () => {
-        if (!window.confirm('Delete this photo?')) return;
-        try {
-          await DB.deletePhoto(p.id);
-          await loadPhotos();
-        } catch (err) {
-          window.alert('Could not delete the photo.');
-        }
+    } else {
+      gallery.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'admin-item';
+        card.innerHTML =
+          '<img src="' + esc(p.url) + '" alt="' + esc(p.caption || 'Festival photo') + '" loading="lazy" />' +
+          (p.caption ? '<span class="admin-item-cap">' + esc(p.caption) + '</span>' : '') +
+          '<button type="button" class="admin-del" aria-label="Delete photo">' +
+          '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+          '</button>';
+        card.querySelector('.admin-del').addEventListener('click', async () => {
+          if (!window.confirm('Delete this photo?')) return;
+          try {
+            await DB.deletePhoto(p.id);
+            photoOffset = 0;
+            await loadPhotos();
+          } catch (err) {
+            window.alert('Could not delete the photo.');
+          }
+        });
+        photoGrid.appendChild(card);
       });
-      photoGrid.appendChild(card);
-    });
+    }
+    const shown = photoGrid.querySelectorAll('.admin-item').length;
+    photoCount.textContent =
+      photoTotal === 0
+        ? (photoSearchText ? 'No photos found' : 'No photos yet')
+        : 'Showing ' + shown + ' of ' + photoTotal + ' photo' + (photoTotal === 1 ? '' : 's');
+    photoPager.classList.toggle('is-hidden', photoOffset + PHOTO_PAGE >= photoTotal);
   }
 
   photoInput.addEventListener('change', async () => {
@@ -183,7 +206,23 @@
     }
     photoInput.value = '';
     photoCaption.value = '';
+    photoOffset = 0;
     await loadPhotos();
+  });
+
+  photoLoadMore.addEventListener('click', () => {
+    photoOffset += PHOTO_PAGE;
+    loadPhotos();
+  });
+
+  let photoDebounce;
+  photoSearch.addEventListener('input', () => {
+    clearTimeout(photoDebounce);
+    photoDebounce = setTimeout(() => {
+      photoSearchText = photoSearch.value.trim();
+      photoOffset = 0;
+      loadPhotos();
+    }, 300);
   });
 
   /* ------------------------------- results ------------------------------- */
@@ -340,6 +379,13 @@
     previewPoster(file);
   });
 
+  posterLabel.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      posterInput.click();
+    }
+  });
+
   function previewPoster(file) {
     if (!file) {
       posterPreview.hidden = true;
@@ -404,6 +450,7 @@
       syncResultOptions();
       posterInput.value = '';
       previewPoster(null);
+      resultOffset = 0;
       await loadResults();
     } catch (err) {
       resultMsg.textContent = 'Publishing failed — try again.';
@@ -411,57 +458,104 @@
     }
   });
 
+  const RESULT_PAGE = 24;
+
+  const resultSearch = document.getElementById('resultSearch');
+  const resultCatFilter = document.getElementById('resultCatFilter');
+  const resultCount = document.getElementById('resultCount');
+  const resultPager = document.getElementById('resultPager');
+  const resultLoadMore = document.getElementById('resultLoadMore');
+  let resultTotal = 0;
+  let resultOffset = 0;
+  let resultSearchText = '';
+
   async function loadResults() {
     try {
-      const results = await DB.getResults();
-      renderResults(results);
+      const page = await DB.getResultsPage({
+        limit: RESULT_PAGE,
+        offset: resultOffset,
+        search: resultSearchText || undefined,
+        category: resultCatFilter.value || undefined,
+      });
+      resultTotal = page.count;
+      renderResults(page.data, resultOffset === 0);
     } catch (err) {
-      UI.showError(resultGrid, 'Could not load published results.', () => loadResults());
+      UI.showError(resultGrid, 'Could not load results.', () => loadResults());
     }
   }
 
-  function renderResults(results) {
-    resultGrid.innerHTML = '';
-    if (results.length === 0) {
+  function renderResults(results, isFirst) {
+    if (isFirst) resultGrid.innerHTML = '';
+    if (results.length === 0 && isFirst) {
       resultGrid.appendChild(
         UI.emptyState({
-          title: 'No results yet',
-          hint: 'Use the form above to add the first result poster.',
+          title: resultSearchText || resultCatFilter.value ? 'No results matched' : 'No results yet',
+          hint: resultSearchText || resultCatFilter.value
+            ? 'Try a different search or category.'
+            : 'Use the form above to add the first result poster.',
           icon: 'result',
         })
       );
-      return;
-    }
-    results.forEach((r) => {
-      const card = document.createElement('div');
-      card.className = 'admin-poster';
-      const status = r.published
-        ? '<span class="admin-poster-status is-live">Live</span>'
-        : '<span class="admin-poster-status is-pending">Pending</span>';
-      card.innerHTML =
-        '<div class="admin-poster-thumb">' +
-        status +
-        '<img src="' + esc(r.url) + '" alt="' + esc(r.event_name) + '" loading="lazy" />' +
-        '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
-        '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-        '</button>' +
-        '</div>' +
-        '<div class="admin-poster-meta">' +
-        '<span class="admin-poster-title">' + esc(r.event_name) + '</span>' +
-        '<span class="admin-poster-cat">' + esc(r.category || '') + (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
-        '</div>';
-      card.querySelector('.admin-del').addEventListener('click', async () => {
-        if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
-        try {
-          await DB.deleteResult(r.id, r.url);
-          await loadResults();
-        } catch (err) {
-          window.alert('Could not remove the result.');
-        }
+    } else {
+      results.forEach((r) => {
+        const card = document.createElement('div');
+        card.className = 'admin-poster';
+        const status = r.published
+          ? '<span class="admin-poster-status is-live">Live</span>'
+          : '<span class="admin-poster-status is-pending">Pending</span>';
+        card.innerHTML =
+          '<div class="admin-poster-thumb">' +
+          status +
+          '<img src="' + esc(r.url) + '" alt="' + esc(r.event_name) + '" loading="lazy" />' +
+          '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
+          '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+          '</button>' +
+          '</div>' +
+          '<div class="admin-poster-meta">' +
+          '<span class="admin-poster-title">' + esc(r.event_name) + '</span>' +
+          '<span class="admin-poster-cat">' + esc(r.category || '') + (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
+          '</div>';
+        card.querySelector('.admin-del').addEventListener('click', async () => {
+          if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
+          try {
+            await DB.deleteResult(r.id, r.url);
+            resultOffset = 0;
+            await loadResults();
+          } catch (err) {
+            window.alert('Could not remove the result.');
+          }
+        });
+        resultGrid.appendChild(card);
       });
-      resultGrid.appendChild(card);
-    });
+    }
+    const shown = resultGrid.querySelectorAll('.admin-poster').length;
+    const catLabel = resultCatFilter.value ? ' · ' + resultCatFilter.value + ' only' : '';
+    resultCount.textContent =
+      resultTotal === 0
+        ? (resultSearchText || resultCatFilter.value ? 'No results matched' : 'No results yet')
+        : 'Showing ' + shown + ' of ' + resultTotal + ' results' + catLabel;
+    resultPager.classList.toggle('is-hidden', resultOffset + RESULT_PAGE >= resultTotal);
   }
+
+  resultLoadMore.addEventListener('click', () => {
+    resultOffset += RESULT_PAGE;
+    loadResults();
+  });
+
+  let resultDebounce;
+  resultSearch.addEventListener('input', () => {
+    clearTimeout(resultDebounce);
+    resultDebounce = setTimeout(() => {
+      resultSearchText = resultSearch.value.trim();
+      resultOffset = 0;
+      loadResults();
+    }, 300);
+  });
+
+  resultCatFilter.addEventListener('change', () => {
+    resultOffset = 0;
+    loadResults();
+  });
 
   /* -------------------------------- teams -------------------------------- */
 
@@ -539,6 +633,7 @@
       teams = res.teams || teams;
       renderTeams();
       await loadResultsCounts();
+      resultOffset = 0;
       await loadResults();
       if (res.published === 0) {
         window.alert('No unpublished results to publish.');

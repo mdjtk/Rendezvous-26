@@ -6,6 +6,8 @@
     "watch:css": "tailwindcss -i css/tailwind.css -o css/tailwind-output.css --watch"
   },
   "devDependencies": {
+    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.19"
-  }
+  },
+  "dependencies": {}
 }
