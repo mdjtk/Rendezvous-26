@@ -434,20 +434,22 @@
     }
     results.forEach((r) => {
       const card = document.createElement('div');
-      card.className = 'admin-item';
-      const badge = r.published
-        ? ''
-        : '<span class="absolute top-2 left-2 bg-amber-600 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">Pending</span>';
+      card.className = 'admin-poster';
+      const status = r.published
+        ? '<span class="admin-poster-status is-live">Live</span>'
+        : '<span class="admin-poster-status is-pending">Pending</span>';
       card.innerHTML =
-        '<div class="relative">' + badge +
+        '<div class="admin-poster-thumb">' +
+        status +
         '<img src="' + esc(r.url) + '" alt="' + esc(r.event_name) + '" loading="lazy" />' +
-        '</div>' +
-        '<span class="admin-item-cap">' +
-          esc(r.event_name) + ' · ' + esc(r.category || '') +
-          (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
         '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
-        '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-        '</button>';
+        '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+        '</button>' +
+        '</div>' +
+        '<div class="admin-poster-meta">' +
+        '<span class="admin-poster-title">' + esc(r.event_name) + '</span>' +
+        '<span class="admin-poster-cat">' + esc(r.category || '') + (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
+        '</div>';
       card.querySelector('.admin-del').addEventListener('click', async () => {
         if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
         try {
