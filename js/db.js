@@ -459,38 +459,103 @@
     };
   }
 
-  // Results are live the moment they are uploaded. Awarding is a separate
-  // step: it walks the already-published results and grants per-rank team /
-  // champion points and coins exactly once. Double-awarding is prevented by
-  // the results.points_awarded column when it exists; otherwise the rows are
-  // remembered for the lifetime of this page (awardedThisSession).
-  const awardedThisSession = new Set();
+// Results are live the moment they are uploaded. Awarding grants per-rank
+  // team / champion points and coins exactly once per result, either through
+  // the Team Points Publish button or automatically when a result is added.
+  // Double-awarding is prevented by a persisted award store, so results stay
+  // marked across reloads and sessions without needing extra DB columns.
+  const awardStoreKey = () => 'rv26:awarded:' + C().SUPABASE_URL;
 
-  async function tableHasColumn(table, column) {
+  function loadAwardStore() {
     try {
-      const res = await fetch(
-        `${C().SUPABASE_URL}/rest/v1/${table}?select=${column}&limit=1`,
-        { headers: headers() }
-      );
-      return res.ok && res.status === 200;
+      const raw = JSON.parse(window.localStorage.getItem(awardStoreKey()) || '[]');
+      return new Set(Array.isArray(raw) ? raw.map(String) : []);
     } catch (e) {
-      return false;
+      return new Set();
+    }
+  }
+
+  function saveAwardStore(set) {
+    try {
+      window.localStorage.setItem(awardStoreKey(), JSON.stringify(Array.from(set)));
+    } catch (e) { /* best effort */ }
+  }
+
+  let awardStoreCache = null;
+
+  function cachedAwardStore() {
+    if (!awardStoreCache) awardStoreCache = loadAwardStore();
+    return awardStoreCache;
+  }
+
+  function markAwarded(id) {
+    const set = cachedAwardStore();
+    set.add(String(id));
+    saveAwardStore(set);
+  }
+
+  // First award pass: treat the already-published backlog as awarded so the
+  // bulk button never double-awards results that predate the auto-award flow.
+  function primeAwardStore(rows) {
+    if (awardStoreCache) return;
+    const set = loadAwardStore();
+    (rows || []).forEach((r) => set.add(String(r.id)));
+    saveAwardStore(set);
+    awardStoreCache = set;
+  }
+
+  // Accumulates team + student deltas for a single result into the given maps.
+  function collectResultAwards(result, studentByName, teamByName, teamDeltas, studentUpdates) {
+    if (!result.places) return;
+    for (const place of result.places) {
+      if (!place.participant_name || !place.rank) continue;
+      const pts = result.points ? result.points[String(place.rank)] : 0;
+      const placeCoins = Math.max(0, Math.floor(+place.coins || 0));
+      const student = studentByName.get(cleanName(place.participant_name).toLowerCase());
+
+      if (pts && student && student.team) {
+        const team = teamByName.get(student.team.toLowerCase());
+        if (team) teamDeltas[team.id] = (teamDeltas[team.id] || 0) + pts;
+      }
+
+      if (student) {
+        studentUpdates.push({
+          id: student.id,
+          champPts: pts || 0,
+          coins: placeCoins,
+          reason: 'Result ' + place.rank + ordinal(place.rank) + ' in ' + result.event_name,
+        });
+      }
+    }
+  }
+
+  async function applyAwards(teamDeltas, studentUpdates, allTeams) {
+    for (const [teamId, delta] of Object.entries(teamDeltas)) {
+      const team = allTeams.find((t) => String(t.id) === String(teamId));
+      if (team) await setTeamPoints(team.id, team.points + delta);
+    }
+    for (const u of studentUpdates) {
+      if (u.champPts) {
+        await withPointsUpdate(u.id, (p) => p + u.champPts);
+      }
+      if (u.coins) {
+        await withCoinsUpdate(u.id, (c) => c + u.coins);
+        await pushLedger(u.id, u.coins, u.reason, 'award');
+      }
     }
   }
 
   async function awardResults(limit) {
     requireConfigured();
-    const hasAwardColumn = await tableHasColumn('results', 'points_awarded');
     let query = 'results?published=eq.true&select=*&order=created_at.asc';
-    if (hasAwardColumn) query += '&points_awarded=eq.false';
     if (limit > 0) query += '&limit=' + limit;
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${query}`, { headers: headers() });
     if (!res.ok) throw new Error('Read failed (' + res.status + ')');
     const candidates = await res.json();
-    const toPublish = candidates.filter(
-      (r) => hasAwardColumn || !awardedThisSession.has(String(r.id))
-    );
-    if (toPublish.length === 0) return { awarded: 0, teams: await getTeams(), hasAwardColumn };
+    primeAwardStore(candidates);
+    const marked = cachedAwardStore();
+    const toAward = (candidates || []).filter((r) => !marked.has(String(r.id)));
+    if (toAward.length === 0) return { awarded: 0, teams: await getTeams() };
 
     const allStudents = await getStudents();
     const studentByName = new Map();
@@ -503,56 +568,35 @@
     const teamDeltas = {};
     const studentUpdates = [];
 
-    for (const result of toPublish) {
-      if (result.places) {
-        for (const place of result.places) {
-          if (!place.participant_name || !place.rank) continue;
-          const pts = result.points ? result.points[String(place.rank)] : 0;
-          const placeCoins = Math.max(0, Math.floor(+place.coins || 0));
-          const student = studentByName.get(cleanName(place.participant_name).toLowerCase());
-
-          // Award team points
-          if (pts && student && student.team) {
-            const team = teamByName.get(student.team.toLowerCase());
-            if (team) teamDeltas[team.id] = (teamDeltas[team.id] || 0) + pts;
-          }
-
-          // Award individual champ points + coins to student
-          if (student) {
-            const champPts = pts || 0;
-            studentUpdates.push({
-              id: student.id,
-              champPts: champPts,
-              coins: placeCoins,
-              reason: 'Result Â· ' + place.rank + ordinal(place.rank) + ' Â· ' + result.event_name,
-            });
-          }
-        }
-      }
-      if (hasAwardColumn) {
-        await sbUpdate('results', result.id, { published: true, points_awarded: true });
-      } else {
-        await sbUpdate('results', result.id, { published: true });
-        awardedThisSession.add(String(result.id));
-      }
+    for (const result of toAward) {
+      collectResultAwards(result, studentByName, teamByName, teamDeltas, studentUpdates);
+      markAwarded(result.id);
     }
 
-    for (const [teamId, delta] of Object.entries(teamDeltas)) {
-      const team = allTeams.find((t) => String(t.id) === String(teamId));
-      if (team) await setTeamPoints(team.id, team.points + delta);
-    }
+    await applyAwards(teamDeltas, studentUpdates, allTeams);
 
-    for (const u of studentUpdates) {
-      if (u.champPts) {
-        await withPointsUpdate(u.id, (p) => p + u.champPts);
-      }
-      if (u.coins) {
-        await withCoinsUpdate(u.id, (c) => c + u.coins);
-        await pushLedger(u.id, u.coins, u.reason, 'award');
-      }
-    }
+    return { awarded: toAward.length, teams: await getTeams() };
+  }
 
-    return { awarded: toPublish.length, teams: await getTeams(), hasAwardColumn };
+  // Awards a single freshly-added result so points land the moment a result
+  // is saved from the Result Posters tab.
+  async function awardSingle(result) {
+    requireConfigured();
+    const allStudents = await getStudents();
+    const studentByName = new Map();
+    allStudents.forEach((s) => studentByName.set(cleanName(s.name).toLowerCase(), s));
+
+    const allTeams = await getTeams();
+    const teamByName = new Map();
+    allTeams.forEach((t) => teamByName.set(t.name.toLowerCase(), t));
+
+    const teamDeltas = {};
+    const studentUpdates = [];
+    collectResultAwards(result, studentByName, teamByName, teamDeltas, studentUpdates);
+    await applyAwards(teamDeltas, studentUpdates, allTeams);
+    markAwarded(result.id);
+
+    return { awarded: 1, placements: studentUpdates.length };
   }
 
   function ordinal(n) {
@@ -906,6 +950,7 @@
     deleteResult,
     getResultsCounts,
     awardResults,
+    awardSingle,
     subscribeTeams,
     getStudents,
     addStudentsBulk,

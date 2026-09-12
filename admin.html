@@ -436,11 +436,7 @@
               <div
                 class="bg-surface-container-low border border-white/5 rounded-xl p-space-md space-y-space-sm"
               >
-                <div class="flex flex-col sm:flex-row sm:items-center gap-space-sm">
-                  <p id="resultsCount" class="flex-1 text-on-surface font-body-md text-body-md">
-                    Loading…
-                  </p>
-                  <div class="flex items-center gap-space-xs">
+                <div class="flex items-center justify-end gap-space-xs">
                     <input
                       id="publishLimit"
                       type="number"
@@ -459,7 +455,6 @@
                       <span>Publish</span>
                     </button>
                   </div>
-                </div>
                 <p class="text-on-surface-variant text-body-sm leading-snug">
                   Every poster you add goes live for students instantly. Press
                   Publish here to award per-rank points to each winner's team
@@ -467,6 +462,17 @@
                 </p>
               </div>
               <div id="teamList" class="team-admin-list"></div>
+
+              <div class="mt-space-lg pt-space-lg border-t border-white/5">
+                <span
+                  class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block"
+                  >Recently added results</span
+                >
+                <p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm mt-space-2xs">
+                  The most recent posters and the points they give out per rank.
+                </p>
+                <div id="recentResultsList" class="team-admin-list"></div>
+              </div>
             </div>
 
             <div id="panel-students" class="panel is-hidden space-y-space-lg">
@@ -756,9 +762,9 @@
                 </div>
                 <p id="scErr" class="hidden mt-space-sm font-body-sm text-body-sm text-error"></p>
 
-                <div id="scCard" class="hidden mt-space-lg grid lg:grid-cols-[380px,1fr] gap-space-xl">
+                <div id="scCard" class="hidden mt-space-lg grid grid-cols-1 lg:grid-cols-[380px,1fr] lg:items-start gap-space-xl">
                   <div
-                    class="wallet-card rounded-3xl bg-gradient-to-br from-surface-bright to-surface-container p-space-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+                    class="wallet-card min-w-0 rounded-3xl bg-gradient-to-br from-surface-bright to-surface-container p-space-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
                   >
                     <div class="flex items-center gap-space-sm">
                       <span id="scAvatar" class="wallet-avatar">?</span>

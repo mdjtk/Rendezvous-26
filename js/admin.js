@@ -86,7 +86,7 @@
     loadResults();
     loadResultPrograms();
     loadTeams();
-    loadResultsCounts();
+    loadRecentResults();
     loadStudents();
     loadChamp();
     loadSchedule();
@@ -445,13 +445,14 @@
       return;
     }
     try {
-      await DB.addResults(
+      const row = await DB.addResults(
         eventName.value.trim(),
         categoryField.value.trim() || 'Minor',
         file,
         placements
       );
-      resultMsg.textContent = 'Saved — it is live for students. Press Publish in the Teams tab to award points.';
+      await DB.awardSingle(row);
+      resultMsg.textContent = 'Saved — team + champion points awarded for ' + placements.length + ' place(s).';
       resultMsg.classList.remove('is-error');
       eventName.value = '';
       categoryField.value = 'Minor';
@@ -575,22 +576,115 @@
   /* -------------------------------- teams -------------------------------- */
 
   const teamList = document.getElementById('teamList');
-  const resultsCountEl = document.getElementById('resultsCount');
   const publishLimitEl = document.getElementById('publishLimit');
   const publishBtnEl = document.getElementById('publishBtn');
 
   let teams = [];
 
-  async function loadResultsCounts() {
-    try {
-      const c = await DB.getResultsCounts();
-      resultsCountEl.textContent =
-        c.total === 0
-          ? 'No results uploaded yet.'
-          : c.published + ' of ' + c.total + ' results published (' + c.pending + ' pending).';
-    } catch (err) {
-      resultsCountEl.textContent = 'Could not load result counts.';
+  const recentResultsList = document.getElementById('recentResultsList');
+
+  const TEAM_META = [
+    { match: /tanzanian/i, code: 'TT', color: '#A52A2A' },
+    { match: /isfahan/i, code: 'II', color: '#676700' },
+  ];
+  const FALLBACK_COLOR = '#a3e635';
+
+  function teamMeta(team) {
+    const name = team ? String(team.name || '') : '';
+    for (const m of TEAM_META) {
+      if (m.match.test(name)) return { code: m.code, color: m.color };
     }
+    const initials =
+      name
+        .split(/\s+/)
+        .map((w) => (w[0] || '').toUpperCase())
+        .join('')
+        .slice(0, 2) || '?';
+    return { code: initials, color: FALLBACK_COLOR };
+  }
+
+  function rgbaTint(hex, alpha) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return null;
+    const v = parseInt(m[1], 16);
+    return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + alpha + ')';
+  }
+
+  function cleanKey(s) {
+    return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  async function loadRecentResults() {
+    try {
+      const [resultsRes, studentsRes, teamsRes] = await Promise.all([
+        DB.getResultsPage({ published: true, limit: 6 }),
+        DB.getStudents(),
+        DB.getTeams(),
+      ]);
+      renderRecentResults(resultsRes.data || [], studentsRes || [], teamsRes || []);
+    } catch (err) {
+      recentResultsList.innerHTML = '';
+      recentResultsList.appendChild(UI.emptyState({ title: 'Could not load recent results.', hint: ' ', icon: 'result' }));
+    }
+  }
+
+  function renderRecentResults(results, students, teams) {
+    recentResultsList.innerHTML = '';
+    if (results.length === 0) {
+      recentResultsList.appendChild(
+        UI.emptyState({ title: 'No results yet', hint: 'Add a result poster to get started.', icon: 'result' })
+      );
+      return;
+    }
+    const studentByName = new Map();
+    students.forEach((s) => studentByName.set(cleanKey(s.name), s));
+    results.forEach((result) => {
+      const row = document.createElement('div');
+      row.className = 'admin-team';
+      const chips = (Array.isArray(result.places) ? result.places : [])
+        .filter((p) => p.rank)
+        .map((p) => {
+          const student = studentByName.get(cleanKey(p.participant_name));
+          const team =
+            student && student.team
+              ? teams.find((t) => cleanKey(t.name) === cleanKey(student.team))
+              : null;
+          const meta = team ? teamMeta(team) : null;
+          const pts = result.points && result.points[String(p.rank)];
+          const tint = meta && rgbaTint(meta.color, 0.15);
+          const style =
+            tint
+              ? ' style="background:' + tint + ';color:' + meta.color + ';border-color:' + rgbaTint(meta.color, 0.4) + '"'
+              : '';
+          return (
+            '<span class="recent-result-chip"' + style + '>' +
+            (meta ? esc(meta.code) + ' · ' : '') +
+            esc(p.rank) +
+            suffix(p.rank) +
+            ' &rarr; +' +
+            esc(Number(pts) || 0) +
+            ' pts</span>'
+          );
+        })
+        .join('');
+      row.innerHTML =
+        '<span class="admin-team-name">' +
+        esc(result.event_name) +
+        (result.category ? ' <span class="text-on-surface-variant font-body-sm">· ' + esc(result.category) + '</span>' : '') +
+        '</span>' +
+        (chips
+          ? '<span class="recent-result-chips">' + chips + '</span>'
+          : '<span class="text-on-surface-variant text-body-sm">No placements</span>');
+      recentResultsList.appendChild(row);
+    });
+  }
+
+  function suffix(n) {
+    n = Number(n);
+    if (n === 1) return 'st';
+    if (n === 2) return 'nd';
+    if (n === 3) return 'rd';
+    return 'th';
   }
 
   async function loadTeams() {
@@ -647,7 +741,7 @@
       const res = await DB.awardResults(limit);
       teams = res.teams || teams;
       renderTeams();
-      await loadResultsCounts();
+      await loadRecentResults();
       loadChamp();
       resultOffset = 0;
       await loadResults();
@@ -881,7 +975,9 @@
   function filteredStudents() {
     const cat = studentCatFilter ? studentCatFilter.value : '';
     const sortKey = studentSort ? studentSort.value : 'pts';
-    const list = students.filter((s) => !cat || (s.category || '') === cat);
+    const list = students.filter(
+      (s) => !cat || cat === 'General' || (s.category || '') === cat
+    );
     const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
     if (sortKey === 'team') {
       list.sort((a, b) => {
@@ -1232,8 +1328,8 @@
           (Number(r.delta) >= 0 ? '+' : '−') +
           Math.abs(r.delta) +
           '</span>' +
-          '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') +
-          ' <span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span></span>' +
+          '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
+          '<span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span>' +
           '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
         awardLog.appendChild(li);
       });
@@ -1783,8 +1879,8 @@
         (Number(r.delta) >= 0 ? '+' : '−') +
         Math.abs(r.delta) +
         '</span>' +
-        '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') +
-        ' <span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span></span>' +
+        '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
+        '<span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span>' +
         '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
       scLedger.appendChild(li);
     });
