@@ -39,14 +39,22 @@
     if (btn) btn.disabled = true;
     gateErr.textContent = '';
     const pins = (C && C.PIN) || {};
-    const role = pw === pins.admin ? 'admin' : pw === pins.store ? 'store' : pw === pins.bookstall ? 'bookstall' : null;
-    if (btn) btn.disabled = false;
-    if (role) {
-      grant(role);
-    } else {
-      gateErr.textContent = 'Incorrect access code. Try again.';
-      gatePw.select();
-    }
+    const localRole =
+      pw === pins.admin ? 'admin' : pw === pins.store ? 'store' : pw === pins.bookstall ? 'bookstall' : null;
+    const verifyServer = Promise.resolve()
+      .then(() => DB.verifyPin(pw))
+      .then((res) => ({ role: res.role }))
+      .catch(() => null);
+    verifyServer.then((server) => {
+      if (btn) btn.disabled = false;
+      const role = (server && server.role) || localRole;
+      if (role) {
+        grant(role);
+      } else {
+        gateErr.textContent = 'Incorrect access code. Try again.';
+        gatePw.select();
+      }
+    });
   }
 
   function grant(role) {
@@ -537,11 +545,16 @@
           UI.saveImage(r.url, r.event_name + UI.extOf(r.url));
         });
         card.querySelector('.admin-del').addEventListener('click', async () => {
-          if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
+          if (!window.confirm('Delete "' + r.event_name + '" and reverse its awarded points + coins?')) return;
           try {
-            await DB.deleteResult(r.id, r.url);
+            const info = await DB.deleteResult(r.id, r.url);
+            resultMsg.textContent =
+              'Deleted — reversed ' + info.teamPts + ' team pts, ' + info.champPts +
+              ' champion pts, ' + info.coins + ' coins.';
+            resultMsg.classList.remove('is-error');
             resultOffset = 0;
             await loadResults();
+            loadRecentResults();
           } catch (err) {
             window.alert('Could not remove the result.');
           }
@@ -622,7 +635,7 @@
   async function loadRecentResults() {
     try {
       const [resultsRes, studentsRes, teamsRes] = await Promise.all([
-        DB.getResultsPage({ published: true, limit: 6 }),
+        DB.getResultsPage({ published: true }),
         DB.getStudents(),
         DB.getTeams(),
       ]);
@@ -655,19 +668,33 @@
               ? teams.find((t) => cleanKey(t.name) === cleanKey(student.team))
               : null;
           const meta = team ? teamMeta(team) : null;
-          const pts = result.points && result.points[String(p.rank)];
-          const tint = meta && rgbaTint(meta.color, 0.15);
+          const ptsNum =
+            result.points && result.points[String(p.rank)] != null
+              ? Number(result.points[String(p.rank)])
+              : 0;
+          const credited = !!(team && meta && ptsNum > 0 && student.team);
+          const tint = meta && credited && rgbaTint(meta.color, 0.15);
           const style =
-            tint
+            credited && tint
               ? ' style="background:' + tint + ';color:' + meta.color + ';border-color:' + rgbaTint(meta.color, 0.4) + '"'
               : '';
+          const reason = credited
+            ? ''
+            : student
+              ? team
+                ? 'rank has 0 points'
+                : 'student has no team assigned'
+              : '"' + p.participant_name + '" not found in the roster';
           return (
-            '<span class="recent-result-chip"' + style + '>' +
-            (meta ? esc(meta.code) + ' · ' : '') +
+            '<span class="recent-result-chip' + (credited ? '' : ' is-unmatched') + '"' +
+            style +
+            (credited ? '' : ' title="No team points — ' + esc(reason) + '"') +
+            '>' +
+            (meta && credited ? esc(meta.code) + ' &middot; ' : '') +
             esc(p.rank) +
             suffix(p.rank) +
             ' &rarr; +' +
-            esc(Number(pts) || 0) +
+            esc(ptsNum) +
             ' pts</span>'
           );
         })
@@ -696,6 +723,7 @@
     try {
       teams = await DB.getTeams();
       renderTeams();
+      populateAdjustTeamSelect();
     } catch (err) {
       UI.showError(teamList, 'Could not load teams.', () => loadTeams());
     }
@@ -761,6 +789,203 @@
       publishBtnEl.disabled = false;
     }
   });
+
+  /* --------------------- points & coins controller --------------------- */
+
+  const adjModeTeam = document.getElementById('adjModeTeam');
+  const adjModeStudent = document.getElementById('adjModeStudent');
+  const adjTeamPane = document.getElementById('adjTeamPane');
+  const adjStudentPane = document.getElementById('adjStudentPane');
+  const adjTeam = document.getElementById('adjTeam');
+  const adjAmount = document.getElementById('adjAmount');
+  const adjMsg = document.getElementById('adjMsg');
+  const adjStudentQ = document.getElementById('adjStudentQ');
+  const adjStudentFind = document.getElementById('adjStudentFind');
+  const adjStudentErr = document.getElementById('adjStudentErr');
+  const adjStudentCard = document.getElementById('adjStudentCard');
+  const adjStudentAvatar = document.getElementById('adjStudentAvatar');
+  const adjStudentName = document.getElementById('adjStudentName');
+  const adjStudentTeam = document.getElementById('adjStudentTeam');
+  const adjStudentPts = document.getElementById('adjStudentPts');
+  const adjStudentCoins = document.getElementById('adjStudentCoins');
+  const adjStudentAmount = document.getElementById('adjStudentAmount');
+  const adjStudentMsg = document.getElementById('adjStudentMsg');
+  const adjStuPtsAdd = document.getElementById('adjStuPtsAdd');
+  const adjStuPtsSub = document.getElementById('adjStuPtsSub');
+  const adjStuCoinsAdd = document.getElementById('adjStuCoinsAdd');
+  const adjStuCoinsSub = document.getElementById('adjStuCoinsSub');
+
+  let adjStudent = null;
+
+  function adjErrOn(el, msg) {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('hidden', !msg);
+  }
+
+  function adjMsgOn(el, msg, isError) {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('is-error', Boolean(isError));
+  }
+
+  function setAdjMode(mode) {
+    const team = mode === 'team';
+    adjModeTeam.classList.toggle('is-active', team);
+    adjModeStudent.classList.toggle('is-active', !team);
+    adjTeamPane.classList.toggle('hidden', !team);
+    adjStudentPane.classList.toggle('hidden', team);
+  }
+
+  adjModeTeam.addEventListener('click', () => setAdjMode('team'));
+  adjModeStudent.addEventListener('click', () => setAdjMode('student'));
+
+  function populateAdjustTeamSelect() {
+    if (!adjTeam) return;
+    const prev = adjTeam.value;
+    adjTeam.innerHTML = '';
+    teams
+      .slice()
+      .sort((a, b) => b.points - a.points)
+      .forEach((t) => {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name + ' — ' + t.points + ' pts';
+        adjTeam.appendChild(o);
+      });
+    if (prev && Array.from(adjTeam.options).some((o) => o.value === prev)) adjTeam.value = prev;
+    if (adjMsg) adjMsg.textContent = '';
+  }
+
+  function adjAmountValue(input) {
+    const n = Math.floor(Number(input && input.value));
+    return Number.isFinite(n) && n >= 1 ? n : 0;
+  }
+
+  async function applyTeamAdjust(delta) {
+    const id = adjTeam && adjTeam.value;
+    const amt = adjAmountValue(adjAmount);
+    if (!id) {
+      adjMsgOn(adjMsg, 'Add a team first.');
+      return;
+    }
+    if (!amt) {
+      adjMsgOn(adjMsg, 'Enter an amount of 1 or more.');
+      return;
+    }
+    const team = teams.find((t) => String(t.id) === String(id));
+    try {
+      await DB.adjustTeamPoints(id, delta > 0 ? amt : -amt);
+      await loadTeams();
+      adjMsgOn(
+        adjMsg,
+        (delta > 0 ? 'Added ' : 'Reduced ') + amt + ' point' + (amt === 1 ? '' : 's') + ' to ' + (team ? team.name : 'the team') + '.'
+      );
+    } catch (err) {
+      adjMsgOn(adjMsg, 'Could not update the team.', true);
+    }
+  }
+
+  document.getElementById('adjTeamAdd').addEventListener('click', () => applyTeamAdjust(1));
+  document.getElementById('adjTeamSub').addEventListener('click', () => applyTeamAdjust(-1));
+
+  async function findAdjStudent() {
+    adjErrOn(adjStudentErr, '');
+    const raw = (adjStudentQ.value || '').replace(/[·•]/g, '.').trim();
+    if (!raw) return;
+    let s = null;
+    if (/^\d+$/.test(raw) || /^FESTI-/i.test(raw)) {
+      s = await DB.getStudentByToken(raw).catch(() => null);
+    }
+    if (!s) {
+      try {
+        s = await DB.getStudentByName(raw);
+      } catch (e) {
+        s = null;
+      }
+    }
+    if (!s) {
+      adjErrOn(adjStudentErr, 'No student found for that code or name.');
+      adjStudentCard.classList.add('hidden');
+      adjStudent = null;
+      return;
+    }
+    showAdjStudent(s);
+  }
+
+  adjStudentFind.addEventListener('click', findAdjStudent);
+  adjStudentQ.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') findAdjStudent();
+  });
+
+  function showAdjStudent(s) {
+    adjStudent = s;
+    adjStudentAvatar.textContent = initials(s.name);
+    adjStudentName.textContent = s.name;
+    adjStudentTeam.textContent = s.team || 'No team';
+    adjStudentTeam.style.display = s.team ? '' : 'none';
+    adjStudentPts.textContent = s.points;
+    adjStudentCoins.textContent = s.coins;
+    adjStudentCard.classList.remove('hidden');
+    adjStudentAmount.value = '';
+    adjMsgOn(adjStudentMsg, '');
+  }
+
+  function refreshAdjStudentValues(s) {
+    if (!s) return;
+    adjStudent = s;
+    if (s.points != null) adjStudentPts.textContent = s.points;
+    if (s.coins != null) adjStudentCoins.textContent = s.coins;
+  }
+
+  async function applyStudentPoints(delta) {
+    if (!adjStudent) {
+      adjMsgOn(adjStudentMsg, 'Find a student first.');
+      return;
+    }
+    const amt = adjAmountValue(adjStudentAmount);
+    if (!amt) {
+      adjMsgOn(adjStudentMsg, 'Enter an amount of 1 or more.');
+      return;
+    }
+    try {
+      const updated = await DB.adjustStudentPoints(adjStudent.id, delta > 0 ? amt : -amt);
+      refreshAdjStudentValues(updated || adjStudent);
+      adjMsgOn(adjStudentMsg, (delta > 0 ? 'Added ' : 'Reduced ') + amt + ' point' + (amt === 1 ? '' : 's') + '.');
+      await loadStudents();
+    } catch (err) {
+      adjMsgOn(adjStudentMsg, 'Could not update points.', true);
+    }
+  }
+
+  async function applyStudentCoins(delta) {
+    if (!adjStudent) {
+      adjMsgOn(adjStudentMsg, 'Find a student first.');
+      return;
+    }
+    const amt = adjAmountValue(adjStudentAmount);
+    if (!amt) {
+      adjMsgOn(adjStudentMsg, 'Enter an amount of 1 or more.');
+      return;
+    }
+    const d = delta > 0 ? amt : -Math.min(amt, Number(adjStudent.coins) || 0);
+    try {
+      const updated = await DB.adjustCoins(adjStudent.id, d, delta > 0 ? 'Manual add' : 'Manual deduct');
+      refreshAdjStudentValues(updated || adjStudent);
+      adjMsgOn(
+        adjStudentMsg,
+        (delta > 0 ? 'Added ' : 'Reduced ') + Math.abs(d) + ' coin' + (Math.abs(d) === 1 ? '' : 's') + '.'
+      );
+      await loadStudents();
+    } catch (err) {
+      adjMsgOn(adjStudentMsg, 'Could not update coins.', true);
+    }
+  }
+
+  adjStuPtsAdd.addEventListener('click', () => applyStudentPoints(1));
+  adjStuPtsSub.addEventListener('click', () => applyStudentPoints(-1));
+  adjStuCoinsAdd.addEventListener('click', () => applyStudentCoins(1));
+  adjStuCoinsSub.addEventListener('click', () => applyStudentCoins(-1));
 
   /* --------------------- individual champions (champ) --------------------- */
 

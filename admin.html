@@ -198,6 +198,15 @@
               <button
                 type="button"
                 class="tab px-space-lg py-space-2xs rounded-full font-title-md text-body-sm text-on-surface-variant"
+                data-tab="adjust"
+                role="tab"
+                aria-selected="false"
+              >
+                Points &amp; Coins
+              </button>
+              <button
+                type="button"
+                class="tab px-space-lg py-space-2xs rounded-full font-title-md text-body-sm text-on-surface-variant"
                 data-tab="students"
                 role="tab"
                 aria-selected="false"
@@ -466,12 +475,197 @@
               <div class="mt-space-lg pt-space-lg border-t border-white/5">
                 <span
                   class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block"
-                  >Recently added results</span
+                  >Added results</span
                 >
                 <p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm mt-space-2xs">
                   The most recent posters and the points they give out per rank.
                 </p>
                 <div id="recentResultsList" class="team-admin-list"></div>
+              </div>
+            </div>
+
+            <div id="panel-adjust" class="panel is-hidden space-y-space-lg">
+              <div class="bg-surface-container-low border border-white/5 rounded-xl p-space-md space-y-space-md">
+                <div class="flex flex-col md:flex-row md:items-end gap-space-sm">
+                  <div class="flex-1 min-w-0">
+                    <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block">
+                      Points &amp; Coins controller
+                    </p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+                      Select a team or student, set an amount, then add or reduce.
+                      Values never drop below zero.
+                    </p>
+                  </div>
+                  <div class="flex rounded-xl bg-surface-container-high/70 border border-white/10 p-space-2xs w-full md:w-auto">
+                    <button type="button" id="adjModeTeam" class="sc-kind flex-1 is-active">
+                      Team
+                    </button>
+                    <button type="button" id="adjModeStudent" class="sc-kind flex-1">
+                      Student
+                    </button>
+                  </div>
+                </div>
+
+                <div id="adjTeamPane">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md items-end">
+                    <div class="lg:col-span-2 space-y-space-2xs">
+                      <label
+                        for="adjTeam"
+                        class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block"
+                        >Team</label
+                      >
+                      <select
+                        id="adjTeam"
+                        class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                      ></select>
+                    </div>
+                    <div class="space-y-space-2xs">
+                      <label
+                        for="adjAmount"
+                        class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block"
+                        >Amount</label
+                      >
+                      <input
+                        id="adjAmount"
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="e.g. 10"
+                        class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                      />
+                    </div>
+                    <div class="flex flex-wrap items-center gap-space-xs">
+                      <button
+                        type="button"
+                        id="adjTeamAdd"
+                        class="h-11 px-space-lg rounded-lg bg-primary text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center gap-space-xs"
+                      >
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        <span>Add Points</span>
+                      </button>
+                      <button
+                        type="button"
+                        id="adjTeamSub"
+                        class="h-11 px-space-lg rounded-lg bg-error text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-error/80 transition-colors inline-flex items-center gap-space-xs"
+                      >
+                        <span class="material-symbols-outlined text-[16px]">remove</span>
+                        <span>Reduce</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p id="adjMsg" class="font-body-sm text-body-sm mt-space-sm min-h-[1.25rem]"></p>
+                </div>
+
+                <div id="adjStudentPane" class="hidden space-y-space-md">
+                  <div class="flex gap-space-xs max-w-md">
+                    <input
+                      id="adjStudentQ"
+                      type="search"
+                      autocomplete="off"
+                      spellcheck="false"
+                      placeholder="Code, name or QR…"
+                      list="studentOptions"
+                      class="store-input flex-1"
+                    />
+                    <button type="button" id="adjStudentFind" class="btn-lime">
+                      Find student
+                    </button>
+                  </div>
+                  <p id="adjStudentErr" class="hidden font-body-sm text-body-sm text-error"></p>
+
+                  <div id="adjStudentCard" class="hidden grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-space-md items-start">
+                    <div class="wallet-card min-w-0 rounded-2xl bg-gradient-to-br from-surface-bright to-surface-container p-space-lg border border-white/10">
+                      <div class="flex items-center gap-space-sm">
+                        <span id="adjStudentAvatar" class="wallet-avatar">?</span>
+                        <div class="min-w-0">
+                          <h3 id="adjStudentName" class="font-headline-sm text-body-lg font-bold text-on-surface truncate"></h3>
+                          <span id="adjStudentTeam" class="inline-block mt-space-2xs font-label-code text-label-code text-primary bg-primary-container/40 rounded-full px-space-xs py-space-2xs uppercase tracking-widest"></span>
+                        </div>
+                      </div>
+                      <div class="mt-space-md grid grid-cols-2 gap-space-sm">
+                        <div>
+                          <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">Points</div>
+                          <div class="flex items-end gap-space-2xs">
+                            <span id="adjStudentPts" class="font-headline-lg text-headline-lg font-bold text-primary leading-none">0</span>
+                            <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Pts</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">Coins</div>
+                          <div class="flex items-end gap-space-2xs">
+                            <span id="adjStudentCoins" class="font-headline-lg text-headline-lg font-bold text-primary leading-none">0</span>
+                            <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Coins</span>
+                          </div>
+                        </div>
+                      </div>
+                      <label
+                        for="adjStudentAmount"
+                        class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block mt-space-md"
+                        >Amount</label
+                      >
+                      <input
+                        id="adjStudentAmount"
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="e.g. 5"
+                        class="store-input mt-space-2xs"
+                      />
+                      <p id="adjStudentMsg" class="font-body-sm text-body-sm mt-space-sm min-h-[1.25rem]"></p>
+                    </div>
+
+                    <div class="rounded-2xl bg-surface-bright/70 backdrop-blur-xl border border-white/10 p-space-md space-y-space-md">
+                      <div>
+                        <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block mb-space-2xs">
+                          Adjust individual points
+                        </p>
+                        <div class="flex flex-wrap items-center gap-space-xs">
+                          <button
+                            type="button"
+                            id="adjStuPtsAdd"
+                            class="h-11 px-space-lg rounded-lg bg-primary text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center gap-space-xs"
+                          >
+                            <span class="material-symbols-outlined text-[16px]">add</span>
+                            <span>Add Points</span>
+                          </button>
+                          <button
+                            type="button"
+                            id="adjStuPtsSub"
+                            class="h-11 px-space-lg rounded-lg bg-error text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-error/80 transition-colors inline-flex items-center gap-space-xs"
+                          >
+                            <span class="material-symbols-outlined text-[16px]">remove</span>
+                            <span>Reduce</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="border-t border-white/5 pt-space-md">
+                        <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block mb-space-2xs">
+                          Adjust coins wallet
+                        </p>
+                        <div class="flex flex-wrap items-center gap-space-xs">
+                          <button
+                            type="button"
+                            id="adjStuCoinsAdd"
+                            class="h-11 px-space-lg rounded-lg bg-primary text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center gap-space-xs"
+                          >
+                            <span class="material-symbols-outlined text-[16px]">add</span>
+                            <span>Add Coins</span>
+                          </button>
+                          <button
+                            type="button"
+                            id="adjStuCoinsSub"
+                            class="h-11 px-space-lg rounded-lg bg-error text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-error/80 transition-colors inline-flex items-center gap-space-xs"
+                          >
+                            <span class="material-symbols-outlined text-[16px]">remove</span>
+                            <span>Reduce</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

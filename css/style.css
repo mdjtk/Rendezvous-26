@@ -37,13 +37,14 @@ html {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  perspective: 900px;
 }
 
 #loader img {
   width: 7rem;
   height: 7rem;
   object-fit: contain;
-  backface-visibility: visible;
+  backface-visibility: hidden;
   animation:
     fadeInUpBig 1s cubic-bezier(0.215, 0.61, 0.355, 1) both,
     flip 1.2s ease-in-out 1s both;
@@ -66,6 +67,42 @@ html {
 @keyframes loader-fade {
   to {
     opacity: 1;
+  }
+}
+
+/* Logo rises into view from below while fading in. */
+@keyframes fadeInUpBig {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 320px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Logo does a single 360° flip around its vertical axis. */
+@keyframes flip {
+  0% {
+    transform: perspective(400px) rotate3d(0, 1, 0, -360deg);
+    animation-timing-function: ease-out;
+  }
+  40% {
+    transform: perspective(400px) rotate3d(0, 1, 0, -190deg);
+    animation-timing-function: ease-in-out;
+  }
+  60% {
+    transform: perspective(400px) rotate3d(0, 1, 0, -170deg);
+    animation-timing-function: ease-in;
+  }
+  80% {
+    transform: perspective(400px) scale3d(0.95, 0.95, 0.95) rotate3d(0, 1, 0, 0deg);
+    animation-timing-function: ease-in;
+  }
+  100% {
+    transform: perspective(400px) rotate3d(0, 1, 0, 0deg);
+    animation-timing-function: ease-in;
   }
 }
 
@@ -1387,6 +1424,14 @@ body.lightbox-open .fixed {
   white-space: nowrap;
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
+}
+
+.recent-result-chip.is-unmatched {
+  font-weight: 500;
+  opacity: 0.55;
+  filter: saturate(0.5);
+  border-style: dashed;
+  cursor: help;
 }
 
 .admin-team-actions {

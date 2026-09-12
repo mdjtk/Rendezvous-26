@@ -239,6 +239,24 @@
     return getTeams();
   }
 
+  // Relative +/− adjustment of a team's points (admin). Floored at 0.
+  async function adjustTeamPoints(id, delta) {
+    requireConfigured();
+    const d = Math.floor(+delta || 0);
+    if (!d) return getTeams();
+    const res = await fetch(
+      `${C().SUPABASE_URL}/rest/v1/teams?id=eq.${id}&select=*`,
+      { headers: headers() }
+    );
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const rows = await res.json();
+    const team = rows[0];
+    if (!team) throw new Error('Team not found');
+    const next = Math.max(0, Number(team.points) + d);
+    await sbUpdate('teams', id, { points: next, updated_at: new Date().toISOString() });
+    return getTeams();
+  }
+
   async function addTeam(name) {
     requireConfigured();
     const clean = String(name || '').trim();
@@ -427,12 +445,16 @@
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
 
-  async function deleteResult(id) {
+  async function deleteResult(id, url) {
     requireConfigured();
     const rows = await sbGet('results', 'created_at', false).then((r) =>
       r.filter((x) => String(x.id) === String(id))
     );
     const row = rows[0];
+    const summary = row
+      ? await reverseAwards(row)
+      : { teamPts: 0, champPts: 0, coins: 0, students: 0 };
+    markNotAwarded(id);
     if (row && row.poster_path) {
       try {
         await sbRemoveObjects(C().STORAGE_BUCKETS.results, [row.poster_path]);
@@ -441,6 +463,7 @@
       }
     }
     await sbDelete('results', id);
+    return summary;
   }
 
   async function getResultsCounts() {
@@ -492,6 +515,11 @@
     const set = cachedAwardStore();
     set.add(String(id));
     saveAwardStore(set);
+  }
+
+  function markNotAwarded(id) {
+    const set = cachedAwardStore();
+    if (set.delete(String(id))) saveAwardStore(set);
   }
 
   // First award pass: treat the already-published backlog as awarded so the
@@ -597,6 +625,68 @@
     markAwarded(result.id);
 
     return { awarded: 1, placements: studentUpdates.length };
+  }
+
+  // Reverses everything a single result awarded: team points, the winner's
+  // individual champion points and their coins (with a ledger entry). Deltas
+  // are clamped so balances never go negative, and results that were never
+  // awarded simply decrement nothing.
+  async function reverseAwards(result) {
+    const allStudents = await getStudents();
+    const studentByName = new Map();
+    allStudents.forEach((s) => studentByName.set(cleanName(s.name).toLowerCase(), s));
+
+    const allTeams = await getTeams();
+    const teamByName = new Map();
+    allTeams.forEach((t) => teamByName.set(t.name.toLowerCase(), t));
+
+    const teamDeltas = {};
+    const studentDeltas = [];
+    if (result.places) {
+      for (const place of result.places) {
+        if (!place.participant_name || !place.rank) continue;
+        const pts = result.points ? result.points[String(place.rank)] : 0;
+        const placeCoins = Math.max(0, Math.floor(+place.coins || 0));
+        const student = studentByName.get(cleanName(place.participant_name).toLowerCase());
+
+        if (pts && student && student.team) {
+          const team = teamByName.get(student.team.toLowerCase());
+          if (team) teamDeltas[team.id] = (teamDeltas[team.id] || 0) + pts;
+        }
+
+        if (student) {
+          studentDeltas.push({
+            id: student.id,
+            champPts: pts || 0,
+            coins: placeCoins,
+            reason: 'Result removed ' + place.rank + ordinal(place.rank) + ' in ' + result.event_name,
+          });
+        }
+      }
+    }
+
+    const summary = { teamPts: 0, champPts: 0, coins: 0, students: studentDeltas.length };
+    for (const [teamId, delta] of Object.entries(teamDeltas)) {
+      const team = allTeams.find((t) => String(t.id) === String(teamId));
+      if (!team) continue;
+      const next = Math.max(0, team.points - delta);
+      if (next !== team.points) {
+        await setTeamPoints(team.id, next);
+        summary.teamPts += delta;
+      }
+    }
+    for (const u of studentDeltas) {
+      if (u.champPts) {
+        await withPointsUpdate(u.id, (p) => Math.max(0, p - u.champPts));
+        summary.champPts += u.champPts;
+      }
+      if (u.coins) {
+        await withCoinsUpdate(u.id, (c) => Math.max(0, c - u.coins));
+        await pushLedger(u.id, -u.coins, u.reason, 'remove');
+        summary.coins += u.coins;
+      }
+    }
+    return summary;
   }
 
   function ordinal(n) {
@@ -816,6 +906,13 @@
     return updated;
   }
 
+  // Relative +/− adjustment of an individual champion's points (admin). Floored at 0.
+  async function adjustStudentPoints(id, delta) {
+    const d = Math.floor(+delta || 0);
+    if (!d) return withPointsUpdate(id, (p) => p);
+    return withPointsUpdate(id, (p) => Math.max(0, Number(p) + d));
+  }
+
   function subscribeStudents(onChange) {
     let last = null;
     const poll = async () => {
@@ -937,6 +1034,7 @@
   window.RV26.DB = {
     getTeams,
     setTeamPoints,
+    adjustTeamPoints,
     addTeam,
     deleteTeam,
     getGallery,
@@ -948,6 +1046,7 @@
     addResult,
     addResults,
     deleteResult,
+    reverseResult: reverseAwards,
     getResultsCounts,
     awardResults,
     awardSingle,
@@ -962,6 +1061,7 @@
     awardCoins,
     deductForStore,
     adjustCoins,
+    adjustStudentPoints,
     subscribeStudents,
     subscribeResults,
     getPrograms,
