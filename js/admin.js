@@ -451,7 +451,7 @@
         file,
         placements
       );
-      resultMsg.textContent = 'Result saved. Publish it from the Teams tab.';
+      resultMsg.textContent = 'Saved — it is live for students. Press Publish in the Teams tab to award points.';
       resultMsg.classList.remove('is-error');
       eventName.value = '';
       categoryField.value = 'Minor';
@@ -462,7 +462,7 @@
       resultOffset = 0;
       await loadResults();
     } catch (err) {
-      resultMsg.textContent = 'Publishing failed — try again.';
+      resultMsg.textContent = 'Saving failed — try again.';
       resultMsg.classList.add('is-error');
     }
   });
@@ -644,16 +644,17 @@
     const limit = parseInt(publishLimitEl.value, 10) || 0;
     publishBtnEl.disabled = true;
     try {
-      const res = await DB.publishResults(limit);
+      const res = await DB.awardResults(limit);
       teams = res.teams || teams;
       renderTeams();
       await loadResultsCounts();
+      loadChamp();
       resultOffset = 0;
       await loadResults();
-      if (res.published === 0) {
-        window.alert('No unpublished results to publish.');
+      if (res.awarded === 0) {
+        window.alert('Nothing new to award — all entered results already have their points awarded.');
       } else {
-        window.alert(res.published + ' result(s) published. Points awarded.');
+        window.alert(res.awarded + ' result(s) awarded. Team + champion points updated.');
       }
     } catch (err) {
       window.alert('Publishing failed — try again.');
@@ -668,6 +669,42 @@
   const champCatFilter = document.getElementById('champCatFilter');
   const CHAMP_CAT_ORDER = ['Minor', 'Premier', 'Sub junior', 'General'];
   let champStudents = [];
+  let champAwards = new Map();
+  let champAwardsLoaded = false;
+  const champOpenNames = new Set();
+
+  function champCleanName(raw) {
+    return String(raw || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function champRankLabel(n) {
+    return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
+  }
+
+  function buildChampAwards(results) {
+    champAwards = new Map();
+    (results || []).forEach((r) => {
+      const awarded =
+        r.points_awarded === undefined ? r.published === true : r.points_awarded === true;
+      if (!awarded || !r.places) return;
+      (r.places || []).forEach((p) => {
+        if (!p || !p.participant_name || !p.rank) return;
+        const pts = r.points ? r.points[String(p.rank)] : 0;
+        const key = champCleanName(p.participant_name);
+        if (!champAwards.has(key)) champAwards.set(key, []);
+        champAwards.get(key).push({
+          event: r.event_name || '—',
+          rank: p.rank,
+          pts: Number(pts) || 0,
+        });
+      });
+    });
+    champAwards.forEach((list) => {
+      list.sort(
+        (a, b) => b.pts - a.pts || String(a.event).localeCompare(String(b.event))
+      );
+    });
+  }
 
   function medalSvg(color) {
     return (
@@ -750,9 +787,14 @@
       b.list.slice(0, topPerCat).forEach((s, i) => {
         const pos = i + 1;
         const lead = pos === 1;
+        const nameKey = champCleanName(s.name);
+        const detail = champAwards.get(nameKey) || [];
+        const hasDetail = detail.length > 0 || !cat;
         const row = document.createElement('div');
-        row.className = 'tp-tr' + (lead ? ' is-1' : '');
+        row.className = 'tp-tr' + (lead ? ' is-1' : '') + (hasDetail ? ' has-detail' : '');
         row.style.animationDelay = i * 60 + 'ms';
+        if (hasDetail) row.setAttribute('role', 'button');
+        if (hasDetail) row.tabIndex = 0;
         row.innerHTML =
           '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
           '<span class="tp-team">' +
@@ -760,8 +802,50 @@
           (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
           '</span>' +
           '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
-          '<span class="tp-pts right"><b>' + esc(s.points) + '</b></span>';
+          '<span class="tp-pts champ-pts right"><b>' + esc(s.points) + '</b>' +
+          (hasDetail
+            ? '<span class="champ-toggle" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"/></svg>' +
+              '</span>'
+            : '') +
+          '</span>';
         tbl.appendChild(row);
+        if (hasDetail) {
+          const wrap = document.createElement('div');
+          wrap.className = 'champ-detail';
+          wrap.innerHTML = detail.length
+            ? detail
+                .map(
+                  (d) =>
+                    '<div class="champ-drow"><span class="champ-devent">' + esc(d.event) + '</span>' +
+                    '<span class="champ-drank">' + esc(champRankLabel(d.rank)) + '</span>' +
+                    '<span class="champ-dpts">' + esc(d.pts) + ' Pts</span></div>'
+                )
+                .join('')
+            : '<div class="champ-drow"><span class="champ-devent">Individual points</span>' +
+              '<span class="champ-drank">—</span>' +
+              '<span class="champ-dpts">' + esc(s.points) + ' Pts</span></div>';
+          wrap.addEventListener('click', (e) => e.stopPropagation());
+          if (champOpenNames.has(nameKey)) {
+            row.classList.add('is-open');
+            row.setAttribute('aria-expanded', 'true');
+          }
+          row.addEventListener('click', () => toggle());
+          row.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggle();
+            }
+          });
+          function toggle() {
+            const open = !row.classList.contains('is-open');
+            row.classList.toggle('is-open', open);
+            row.setAttribute('aria-expanded', String(open));
+            if (open) champOpenNames.add(nameKey);
+            else champOpenNames.delete(nameKey);
+          }
+          tbl.appendChild(wrap);
+        }
       });
     });
 
@@ -773,7 +857,10 @@
 
   async function loadChamp() {
     try {
-      champStudents = await DB.getStudents();
+      const [studentsList, results] = await Promise.all([DB.getStudents(), DB.getResults()]);
+      champStudents = studentsList;
+      buildChampAwards(results);
+      champAwardsLoaded = true;
       renderChamp();
     } catch (err) {
       UI.showError(champContent, 'Could not load individual champions.', () => loadChamp());
@@ -1137,6 +1224,7 @@
         return;
       }
       recent.forEach((r) => {
+        const ch = (CHANNEL_TAGS[channelOf(r)] || CHANNEL_TAGS.store);
         const li = document.createElement('li');
         li.className = 'ledger-row';
         li.innerHTML =
@@ -1144,7 +1232,8 @@
           (Number(r.delta) >= 0 ? '+' : '−') +
           Math.abs(r.delta) +
           '</span>' +
-          '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
+          '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') +
+          ' <span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span></span>' +
           '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
         awardLog.appendChild(li);
       });
@@ -1167,7 +1256,8 @@
       renderStudents();
       loadAwardLog();
       champStudents = list;
-      renderChamp();
+      if (!champAwardsLoaded) loadChamp();
+      else renderChamp();
     });
   }
 
@@ -1497,10 +1587,8 @@
 
   const tabsBar = document.querySelector('.tabs');
   const storePanel = document.getElementById('panel-store');
-  const scToken = document.getElementById('scToken');
-  const scFindToken = document.getElementById('scFindToken');
-  const scName = document.getElementById('scName');
-  const scFindName = document.getElementById('scFindName');
+  const scQ = document.getElementById('scQ');
+  const scFind = document.getElementById('scFind');
   const scErr = document.getElementById('scErr');
   const scCard = document.getElementById('scCard');
   const scAvatar = document.getElementById('scAvatar');
@@ -1514,6 +1602,10 @@
   const scCount = document.getElementById('scCount');
   const scLedger = document.getElementById('scLedger');
   const scLedgerTitle = document.getElementById('scLedgerTitle');
+  const scSummary = document.getElementById('scSummary');
+  const scKind = document.getElementById('scKind');
+  const scKindBook = document.getElementById('scKindBook');
+  const scKindStore = document.getElementById('scKindStore');
 
   let scStudent = null;
   let storeLedgerRows = [];
@@ -1522,7 +1614,7 @@
     if (tabsBar) tabsBar.classList.add('is-hidden');
     panels.forEach((p) => p.classList.add('is-hidden'));
     storePanel.classList.remove('is-hidden');
-    scToken.focus();
+    scQ.focus();
     try {
       await loadStudents();
     } catch (e) {
@@ -1542,6 +1634,16 @@
     scMsg.classList.toggle('hidden', !msg);
   }
 
+  function setScKind(kind) {
+    scKind.value = kind === 'store' ? 'store' : 'book';
+    scKindBook.classList.toggle('is-active', scKind.value === 'book');
+    scKindStore.classList.toggle('is-active', scKind.value === 'store');
+  }
+
+  scKindBook.addEventListener('click', () => setScKind('book'));
+  scKindStore.addEventListener('click', () => setScKind('store'));
+  if (scKind.value) setScKind(scKind.value);
+
   function showScStudent(s) {
     scStudent = s;
     scAvatar.textContent = initials(s.name);
@@ -1556,35 +1658,28 @@
     renderStoreLedgerFor(s);
   }
 
-  async function findScToken() {
+  async function findSc() {
     scErrOn('');
-    const raw = scToken.value.trim().toUpperCase();
+    const raw = (scQ.value || '').replace(/[·•]/g, '.').trim();
     if (!raw) return;
-    const s = await DB.getStudentByToken(raw).catch(() => null);
-    if (s) showScStudent(s);
-    else scErrOn('No wallet found for that code.');
-  }
-
-  async function findScName() {
-    scErrOn('');
-    const name = scName.value.trim();
-    if (!name) return;
-    try {
-      const s = await DB.getStudentByName(name);
-      if (s) showScStudent(s);
-      else scErrOn('No wallet found for that name.');
-    } catch (e) {
-      scErrOn('Could not look that up. Try again.');
+    let s = null;
+    if (/^\d+$/.test(raw) || /^FESTI-/i.test(raw)) {
+      s = await DB.getStudentByToken(raw).catch(() => null);
     }
+    if (!s) {
+      try {
+        s = await DB.getStudentByName(raw);
+      } catch (e) {
+        s = null;
+      }
+    }
+    if (s) showScStudent(s);
+    else scErrOn('No wallet found for that code or name.');
   }
 
-  scFindToken.addEventListener('click', findScToken);
-  scToken.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') findScToken();
-  });
-  scFindName.addEventListener('click', findScName);
-  scName.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') findScName();
+  scFind.addEventListener('click', findSc);
+  scQ.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') findSc();
   });
 
   scCharge.addEventListener('click', async () => {
@@ -1601,9 +1696,13 @@
     }
     scCharge.disabled = true;
     try {
-      const updated = await DB.deductForStore(scStudent.id, amt, reason);
+      const kind = scKind.value === 'store' ? 'store' : 'book';
+      const updated = await DB.deductForStore(scStudent.id, amt, reason, kind);
       scBalance.textContent = updated.coins;
-      scMsgOn('Charged ' + amt + ' Coins — new balance ' + updated.coins + '.');
+      scMsgOn(
+        'Charged ' + amt + ' Coins · ' + (kind === 'book' ? 'Book' : 'Store') +
+          ' — new balance ' + updated.coins + '.'
+      );
       scAmount.value = '';
       scReason.value = '';
       loadStoreLedger();
@@ -1620,11 +1719,25 @@
 
   async function loadStoreLedger() {
     try {
-      storeLedgerRows = await DB.getLedgerAll();
+      const all = await DB.getLedgerAll();
+      storeLedgerRows = all.filter(
+        (r) => (r.channel || 'store') === 'book' || (r.channel || 'store') === 'store'
+      );
     } catch (e) {
       storeLedgerRows = [];
     }
     renderStoreLedgerFor(scStudent);
+  }
+
+  const CHANNEL_TAGS = {
+    book: { label: 'Book', cls: 'is-book' },
+    store: { label: 'Store', cls: 'is-store' },
+    award: { label: 'Award', cls: 'is-award' },
+    adjust: { label: 'Adjust', cls: 'is-adjust' },
+  };
+
+  function channelOf(r) {
+    return r && r.channel ? r.channel : 'store';
   }
 
   function renderStoreLedgerFor(s) {
@@ -1637,18 +1750,32 @@
 
   function renderStoreLedger(rows) {
     scCount.textContent = rows && rows.length ? rows.length + (rows.length === 1 ? ' entry' : ' entries') : '';
+    let bookN = 0;
+    let storeN = 0;
+    (rows || []).forEach((r) => {
+      if (channelOf(r) === 'book') bookN += 1;
+      else storeN += 1;
+    });
+    if (rows && rows.length) {
+      scSummary.innerHTML =
+        (storeN ? '<span class="is-store">Store ' + storeN + '</span>' : '') +
+        (bookN ? '<span class="is-book">Book ' + bookN + '</span>' : '');
+    } else {
+      scSummary.innerHTML = '';
+    }
     scLedger.innerHTML = '';
     if (!rows || !rows.length) {
       scLedger.appendChild(
         UI.emptyState({
           title: 'No activity yet',
-          hint: 'Awards and purchases will appear here.',
+          hint: 'Store items and book purchases will appear here.',
           icon: 'points',
         })
       );
       return;
     }
     rows.forEach((r) => {
+      const ch = CHANNEL_TAGS[channelOf(r)] || CHANNEL_TAGS.store;
       const li = document.createElement('li');
       li.className = 'ledger-row';
       li.innerHTML =
@@ -1656,7 +1783,8 @@
         (Number(r.delta) >= 0 ? '+' : '−') +
         Math.abs(r.delta) +
         '</span>' +
-        '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
+        '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') +
+        ' <span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span></span>' +
         '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
       scLedger.appendChild(li);
     });

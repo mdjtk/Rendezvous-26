@@ -31,8 +31,9 @@
       .replace(/\s+/g, ' ');
   }
 
-  function placeChip(p) {
+  function placeChip(p, points) {
     if (!p || !p.participant_name) return '';
+    const pts = p.rank && points ? Number(points[String(p.rank)]) : 0;
     return (
       '<span class="poster-place">' +
       (p.rank
@@ -42,7 +43,7 @@
         : '') +
       '<span class="poster-place-name">' + esc(p.participant_name) + '</span>' +
       (p.grade ? '<span class="placement-grade-badge">' + esc(p.grade) + '</span>' : '') +
-      (p.coins ? '<span class="placement-coins-badge">' + esc(p.coins) + ' C</span>' : '') +
+      (pts ? '<span class="placement-points-badge">+' + esc(pts) + ' pts</span>' : '') +
       '</span>'
     );
   }
@@ -141,11 +142,11 @@
       '  <span class="poster-cat">' + esc(r.category || '') + '</span>' +
       (Array.isArray(r.places) && r.places.length
         ? '<span class="poster-places">' +
-          r.places.map(placeChip).join('') +
+          r.places.map((p) => placeChip(p, r.points)).join('') +
           '</span>'
         : r.name
           ? '<span class="poster-name">' +
-            placeChip({ rank: r.rank, participant_name: r.name }) +
+            placeChip({ rank: r.rank, participant_name: r.name }, r.points) +
             '</span>'
           : '') +
       '</span>';

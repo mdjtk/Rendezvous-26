@@ -331,7 +331,7 @@
     if (o.category) filters.category = o.category;
     if (o.search) filters.event_name = { ilike: '*' + o.search + '*' };
     const { data, count } = await sbQuery('results', {
-      select: 'id,event_name,category,participant_name,rank,poster_path,published,created_at',
+      select: 'id,event_name,category,participant_name,rank,places,points,poster_path,published,created_at',
       order: 'created_at',
       ascending: false,
       limit: o.limit,
@@ -348,6 +348,40 @@
     };
   }
 
+  async function getResultDetail(id) {
+    requireConfigured();
+    const rows = await sbGet('results').then((r) =>
+      (r || []).filter((x) => String(x.id) === String(id))
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const allStudents = await getStudents();
+    const byName = new Map();
+    allStudents.forEach((s) => byName.set(cleanName(s.name).toLowerCase(), s));
+    const places = Array.isArray(row.places)
+      ? row.places
+          .filter((p) => p && String(p.participant_name || '').trim())
+          .map((p) => {
+            const st = byName.get(cleanName(p.participant_name).toLowerCase());
+            return {
+              rank: p.rank != null ? Number(p.rank) : null,
+              name: String(p.participant_name).trim(),
+              team: st ? st.team : null,
+              grade: p.grade || (st ? st.category : null) || null,
+              points:
+                row.points && p.rank != null && row.points[String(p.rank)] != null
+                  ? Number(row.points[String(p.rank)])
+                  : null,
+            };
+          })
+      : [];
+    return {
+      ...row,
+      places,
+      url: publicUrl(C().STORAGE_BUCKETS.results, row.poster_path),
+    };
+  }
+
   async function addResult(eventName, category, file, name, rank) {
     requireConfigured();
     const path = uniquePath('posters', file);
@@ -358,6 +392,7 @@
       participant_name: name ? String(name).trim() : null,
       rank: rank ? Number(rank) : null,
       poster_path: path,
+      published: true,
     });
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
@@ -387,7 +422,7 @@
       places: places.length ? places : null,
       poster_path: path,
       points: Object.keys(rankPoints).length ? rankPoints : null,
-      published: false,
+      published: true,
     });
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
@@ -424,14 +459,38 @@
     };
   }
 
-  async function publishResults(limit) {
+  // Results are live the moment they are uploaded. Awarding is a separate
+  // step: it walks the already-published results and grants per-rank team /
+  // champion points and coins exactly once. Double-awarding is prevented by
+  // the results.points_awarded column when it exists; otherwise the rows are
+  // remembered for the lifetime of this page (awardedThisSession).
+  const awardedThisSession = new Set();
+
+  async function tableHasColumn(table, column) {
+    try {
+      const res = await fetch(
+        `${C().SUPABASE_URL}/rest/v1/${table}?select=${column}&limit=1`,
+        { headers: headers() }
+      );
+      return res.ok && res.status === 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function awardResults(limit) {
     requireConfigured();
-    let query = 'results?published=eq.false&select=*&order=created_at.asc';
+    const hasAwardColumn = await tableHasColumn('results', 'points_awarded');
+    let query = 'results?published=eq.true&select=*&order=created_at.asc';
+    if (hasAwardColumn) query += '&points_awarded=eq.false';
     if (limit > 0) query += '&limit=' + limit;
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${query}`, { headers: headers() });
     if (!res.ok) throw new Error('Read failed (' + res.status + ')');
-    const toPublish = await res.json();
-    if (toPublish.length === 0) return { published: 0, teams: await getTeams() };
+    const candidates = await res.json();
+    const toPublish = candidates.filter(
+      (r) => hasAwardColumn || !awardedThisSession.has(String(r.id))
+    );
+    if (toPublish.length === 0) return { awarded: 0, teams: await getTeams(), hasAwardColumn };
 
     const allStudents = await getStudents();
     const studentByName = new Map();
@@ -470,7 +529,12 @@
           }
         }
       }
-      await sbUpdate('results', result.id, { published: true });
+      if (hasAwardColumn) {
+        await sbUpdate('results', result.id, { published: true, points_awarded: true });
+      } else {
+        await sbUpdate('results', result.id, { published: true });
+        awardedThisSession.add(String(result.id));
+      }
     }
 
     for (const [teamId, delta] of Object.entries(teamDeltas)) {
@@ -484,11 +548,11 @@
       }
       if (u.coins) {
         await withCoinsUpdate(u.id, (c) => c + u.coins);
-        await pushLedger(u.id, u.coins, u.reason);
+        await pushLedger(u.id, u.coins, u.reason, 'award');
       }
     }
 
-    return { published: toPublish.length, teams: await getTeams() };
+    return { awarded: toPublish.length, teams: await getTeams(), hasAwardColumn };
   }
 
   function ordinal(n) {
@@ -627,14 +691,23 @@
     return res.json();
   }
 
-  async function getLedgerAll() {
+  async function getLedgerAll(channel) {
     requireConfigured();
-    return sbGet('glocal_ledger', 'created_at', false);
+    return sbQuery('glocal_ledger', {
+      order: 'created_at',
+      ascending: false,
+      filters: channel ? { channel } : undefined,
+    });
   }
 
-  async function pushLedger(studentId, delta, reason) {
+  async function pushLedger(studentId, delta, reason, channel) {
     requireConfigured();
-    await sbInsert('glocal_ledger', { student_id: studentId, delta, reason: reason || null });
+    await sbInsert('glocal_ledger', {
+      student_id: studentId,
+      delta,
+      reason: reason || null,
+      channel: channel || 'store',
+    });
   }
 
   async function withPointsUpdate(id, apply) {
@@ -670,13 +743,13 @@
     const amt = Math.max(0, Math.floor(+amount || 0));
     if (!amt) return withCoinsUpdate(studentId, (c) => c);
     const updated = await withCoinsUpdate(studentId, (c) => c + amt);
-    await pushLedger(studentId, amt, cleanName(reason) || 'Award');
+    await pushLedger(studentId, amt, cleanName(reason) || 'Award', 'award');
     return updated;
   }
 
   // Debits coins at the counter. Throws { code: 'INSUFFICIENT' } if the
   // student cannot cover the amount â€” re-checked at the moment of purchase.
-  async function deductForStore(studentId, amount, reason) {
+  async function deductForStore(studentId, amount, reason, channel) {
     const amt = Math.max(0, Math.floor(+amount || 0));
     if (!amt) throw new Error('Enter a valid amount');
     let updated;
@@ -686,7 +759,7 @@
         return c - amt;
       });
     })();
-    await pushLedger(studentId, -amt, cleanName(reason) || 'Store purchase');
+    await pushLedger(studentId, -amt, cleanName(reason) || 'Store purchase', channel);
     return updated;
   }
 
@@ -695,7 +768,7 @@
     const d = Math.floor(+delta || 0);
     if (!d) return withCoinsUpdate(studentId, (c) => c);
     const updated = await withCoinsUpdate(studentId, (c) => c + d);
-    await pushLedger(studentId, d, cleanName(reason) || 'Adjustment');
+    await pushLedger(studentId, d, cleanName(reason) || 'Adjustment', 'adjust');
     return updated;
   }
 
@@ -832,7 +905,7 @@
     addResults,
     deleteResult,
     getResultsCounts,
-    publishResults,
+    awardResults,
     subscribeTeams,
     getStudents,
     addStudentsBulk,

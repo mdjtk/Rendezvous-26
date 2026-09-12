@@ -55,6 +55,7 @@ create table if not exists public.glocal_ledger (
   student_id bigint not null references public.students(id) on delete cascade,
   delta integer not null,
   reason text,
+  channel text not null default 'store',
   created_at timestamptz not null default now()
 );
 
