@@ -14,6 +14,29 @@
       .replace(/'/g, '&#39;');
   }
 
+  function extOf(url) {
+    const m = /\.([a-z0-9]+)(?:[?#]|$)/i.exec(url.split('?')[0]);
+    return m ? '.' + m[1].toLowerCase() : '';
+  }
+
+  async function saveImage(url, name) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = String(name == null || !name ? 'image' : name).replace(/[\\/:*?"<>|]+/g, '-');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 1500);
+    } catch (err) {
+      window.alert('Could not save the image. Please try again.');
+    }
+  }
+
   /* --------------------------- shell wiring --------------------------- */
 
   function initShell() {
@@ -31,7 +54,7 @@
       if (prefersReduced) {
         finish();
       } else {
-        const MIN = 3200;
+        const MIN = 2000;
         const started = Date.now();
         const pending = () => Math.max(0, MIN - (Date.now() - started));
         window.addEventListener('load', () => setTimeout(finish, pending()), { once: true });
@@ -188,6 +211,21 @@
 
       const title = item.caption || item.event_name || 'Festival photograph';
 
+      const makeDownload = (() => {
+        const dl = document.createElement('button');
+        dl.type = 'button';
+        dl.className = 'btn-download';
+        dl.setAttribute('aria-label', this.downloadLabel);
+        dl.innerHTML =
+          '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>' +
+          escapeHtml(this.downloadLabel);
+        dl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          saveImage(item.url, (item.event_name || item.caption || 'image') + extOf(item.url));
+        });
+        return dl;
+      })();
+
       const el = document.createElement('div');
       el.className = 'lightbox animate-fade-in';
 
@@ -230,16 +268,7 @@
           this.prev();
         });
 
-        const dl = document.createElement('a');
-        dl.className = 'btn-download';
-        dl.href = item.url;
-        dl.download = '';
-        dl.target = '_blank';
-        dl.rel = 'noreferrer';
-        dl.innerHTML =
-          '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>' +
-          escapeHtml(this.downloadLabel);
-        dl.addEventListener('click', (e) => e.stopPropagation());
+        controls.appendChild(makeDownload);
 
         const next = document.createElement('button');
         next.type = 'button';
@@ -253,20 +282,9 @@
         });
 
         controls.appendChild(prev);
-        controls.appendChild(dl);
         controls.appendChild(next);
       } else {
-        const dl = document.createElement('a');
-        dl.className = 'btn-download';
-        dl.href = item.url;
-        dl.download = '';
-        dl.target = '_blank';
-        dl.rel = 'noreferrer';
-        dl.innerHTML =
-          '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>' +
-          escapeHtml(this.downloadLabel);
-        dl.addEventListener('click', (e) => e.stopPropagation());
-        controls.appendChild(dl);
+        controls.appendChild(makeDownload);
       }
 
       figure.appendChild(controls);
@@ -284,6 +302,8 @@
 
   const UI = {
     escapeHtml,
+    extOf,
+    saveImage,
     initShell,
     showLoading,
     showEmpty,

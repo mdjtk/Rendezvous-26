@@ -44,25 +44,43 @@ python -m http.server 8000
 ## Data mode
 
 Supabase is required — there is no localStorage fallback. Team Points update every 10 seconds.
-The default admin password is `rendezvous26`.
+Admin/store access uses the `verify-pin` Edge Function — see "Security setup" below.
 
 ### Connecting Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Run `supabase/schema.sql` in the SQL editor. It creates the tables, storage
-   buckets and public read/write policies used by the site.
+   buckets and claim-gated read/write policies used by the site.
 3. Open `js/config.js` and fill in:
 
    ```js
    SUPABASE_URL: 'https://YOUR-PROJECT.supabase.co',
    SUPABASE_ANON_KEY: 'YOUR-ANON-KEY',
-   ADMIN_PASSWORD: 'your-own-admin-password',
-   STORE_PIN: 'your-own-store-pin',
    ```
+
+### Enabling the admin (security setup)
+
+Writes are not open to the public. A short-lived JWT (8h) is required for every
+write, minted by the `verify-pin` Edge Function when the correct PIN is entered:
+
+```bash
+# 1. create PIN hashes + a JWT secret (prints ready-to-paste values)
+node supabase/generate-pins.mjs
+
+# 2. deploy the function and store the secrets
+supabase functions deploy verify-pin
+supabase secrets set ADMIN_PIN_HASH=<...> STORE_PIN_HASH=<...> JWT_SECRET=<supabase JWT secret>
+
+# 3. only for a database created before the migration: apply the gated policies
+#    (run supabase/security_migration.sql in the SQL editor)
+```
+
+Until the function is deployed and `/admin` is opened, writes are rejected —
+that is intentional. Reads stay public.
 
 ## Admin usage
 
-Open `admin.html` and enter the admin password. Three tabs:
+Open `admin.html` and enter the admin access code. Three tabs:
 
 - **Photos** — upload captured photos (multi-select), optional caption, delete photos.
 - **Results** — publish a result poster (event name + category), delete posters.
@@ -70,7 +88,8 @@ Open `admin.html` and enter the admin password. Three tabs:
 
 ## Security note
 
-Content writes are gated by the admin password in the browser. That protects against casual
-access but is not real authentication — anyone who inspects the frontend files can see the
-check. For a hardened setup, add Supabase Auth with admin accounts and restrict write
-policies in the database.
+The database enforces writes via Row Level Security: only JWTs carrying the
+`rv26_role` claim (admin | store) can write, so even the shipped anon key cannot
+mutate data. The PIN exists only as a hash in Supabase secrets and is exchanged
+once, at login, for the JWT. `js/store.js` is stale, unreferenced code and can be
+deleted.

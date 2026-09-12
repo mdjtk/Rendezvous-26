@@ -1,8 +1,8 @@
-/*
- * Rendezvous '26 — data layer (Supabase only)
+﻿/*
+ * Rendezvous '26 â€” data layer (Supabase only)
  *
  * Every read/write goes to Supabase through its plain REST API using fetch()
- * — no SDK, no build step. Configure SUPABASE_URL and SUPABASE_ANON_KEY in
+ * â€” no SDK, no build step. Configure SUPABASE_URL and SUPABASE_ANON_KEY in
  * js/config.js. Team points refresh on the public page by simple polling.
  */
 (function () {
@@ -12,7 +12,7 @@
   function requireConfigured() {
     if (!configured()) {
       throw new Error(
-        'Supabase not configured — paste your SUPABASE_URL and SUPABASE_ANON_KEY into js/config.js'
+        'Supabase not configured â€” paste your SUPABASE_URL and SUPABASE_ANON_KEY into js/config.js'
       );
     }
   }
@@ -25,6 +25,71 @@
       Authorization: 'Bearer ' + C().SUPABASE_ANON_KEY,
       'Content-Type': 'application/json',
     };
+  }
+
+  /* ---------------------- staff session (JWT) ---------------------- */
+
+  function storedToken() {
+    try {
+      return sessionStorage.getItem('rv26_token') || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  let sessionToken = storedToken();
+
+  function setSessionToken(token) {
+    sessionToken = token ? String(token) : '';
+    try {
+      if (token) sessionStorage.setItem('rv26_token', token);
+      else sessionStorage.removeItem('rv26_token');
+    } catch (e) {
+      /* private mode â€” token just lives for this tab */
+    }
+  }
+
+  function getSessionToken() {
+    return sessionToken || storedToken();
+  }
+
+  function clearSessionToken() {
+    setSessionToken(null);
+  }
+
+  /* Writes attach the staff JWT; reads stay anon (they're public by policy). */
+  function writeHeaders() {
+    const h = headers();
+    const tok = getSessionToken();
+    if (tok) h.Authorization = 'Bearer ' + tok;
+    return h;
+  }
+
+  /*
+   * Exchange a PIN for a short-lived JWT via the /verify-pin Edge Function.
+   * On success the token is stored and auto-attached to every write.
+   */
+  async function verifyPin(pin) {
+    requireConfigured();
+    const res = await fetch(`${C().SUPABASE_URL}/functions/v1/verify-pin`, {
+      method: 'POST',
+      headers: { apikey: C().SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: String(pin || '').trim() }),
+    });
+    let body = {};
+    try {
+      body = await res.json();
+    } catch (e) {
+      body = {};
+    }
+    if (!res.ok) {
+      const err = new Error((body && body.error) || 'Sign in failed (' + res.status + ')');
+      err.status = res.status;
+      throw err;
+    }
+    if (!body.token) throw new Error('Sign in failed â€” unexpected response');
+    setSessionToken(body.token);
+    return { role: body.role, expiresAt: body.expires_at };
   }
 
   async function sbGet(table, orderCol, ascending) {
@@ -40,13 +105,13 @@
   /*
    * Generic paginated/filtered read against PostgREST.
    * opts:
-   *   select    — column list ("*" by default)
-   *   order     — column to order by (default created_at)
-   *   ascending — false → desc
-   *   limit     — page size
-   *   offset    — page start
-   *   filters   — { col: value } → col=eq.value  or  { col: { ilike: 'term' } }
-   *   count     — true adds Prefer: count=exact and returns { data, count }
+   *   select    â€” column list ("*" by default)
+   *   order     â€” column to order by (default created_at)
+   *   ascending â€” false â†’ desc
+   *   limit     â€” page size
+   *   offset    â€” page start
+   *   filters   â€” { col: value } â†’ col=eq.value  or  { col: { ilike: 'term' } }
+   *   count     â€” true adds Prefer: count=exact and returns { data, count }
    * With count:false returns a plain array (backward compatible with sbGet).
    */
   async function sbQuery(table, opts) {
@@ -86,7 +151,7 @@
   async function sbInsert(table, row) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
-      headers: { ...headers(), Prefer: 'return=representation' },
+      headers: { ...writeHeaders(), Prefer: 'return=representation' },
       body: JSON.stringify(row),
     });
     if (!res.ok) throw new Error('Insert failed (' + res.status + ')');
@@ -97,7 +162,7 @@
   async function sbInsertAll(table, rows) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
-      headers: { ...headers(), Prefer: 'return=representation' },
+      headers: { ...writeHeaders(), Prefer: 'return=representation' },
       body: JSON.stringify(rows),
     });
     if (!res.ok) throw new Error('Insert failed (' + res.status + ')');
@@ -107,7 +172,7 @@
   async function sbUpdate(table, id, patch) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { ...headers(), Prefer: 'return=representation' },
+      headers: { ...writeHeaders(), Prefer: 'return=representation' },
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error('Update failed (' + res.status + ')');
@@ -118,7 +183,7 @@
   async function sbDelete(table, id) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
       method: 'DELETE',
-      headers: headers(),
+      headers: writeHeaders(),
     });
     if (!res.ok) throw new Error('Delete failed (' + res.status + ')');
   }
@@ -128,8 +193,7 @@
     const res = await fetch(`${C().SUPABASE_URL}/storage/v1/object/${bucket}/${encoded}`, {
       method: 'POST',
       headers: {
-        apikey: C().SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + C().SUPABASE_ANON_KEY,
+        ...writeHeaders(),
         'Content-Type': file.type || 'application/octet-stream',
         'x-upsert': 'false',
       },
@@ -143,7 +207,7 @@
   async function sbRemoveObjects(bucket, paths) {
     const res = await fetch(`${C().SUPABASE_URL}/storage/v1/object/${bucket}/remove`, {
       method: 'POST',
-      headers: headers(),
+      headers: writeHeaders(),
       body: JSON.stringify({ prefixes: paths }),
     });
     if (!res.ok) throw new Error('Storage delete failed (' + res.status + ')');
@@ -242,7 +306,7 @@
       try {
         await sbRemoveObjects(C().STORAGE_BUCKETS.gallery, [row.photo_path]);
       } catch (e) {
-        /* best effort — storage permission may deny removal; row deletion must still succeed */
+        /* best effort â€” storage permission may deny removal; row deletion must still succeed */
       }
     }
     await sbDelete('gallery', id);
@@ -338,7 +402,7 @@
       try {
         await sbRemoveObjects(C().STORAGE_BUCKETS.results, [row.poster_path]);
       } catch (e) {
-        /* best effort — storage permission may deny removal; row deletion must still succeed */
+        /* best effort â€” storage permission may deny removal; row deletion must still succeed */
       }
     }
     await sbDelete('results', id);
@@ -401,7 +465,7 @@
               id: student.id,
               champPts: champPts,
               coins: placeCoins,
-              reason: 'Result · ' + place.rank + ordinal(place.rank) + ' · ' + result.event_name,
+              reason: 'Result Â· ' + place.rank + ordinal(place.rank) + ' Â· ' + result.event_name,
             });
           }
         }
@@ -511,7 +575,7 @@
     return rows.length;
   }
 
-  // 1001 → 'Minor', 2001 → 'Premier', 3001 → 'Sub junior', 4001 → 'General'
+  // 1001 â†’ 'Minor', 2001 â†’ 'Premier', 3001 â†’ 'Sub junior', 4001 â†’ 'General'
   function sectionForRosterNo(n) {
     if (n >= 4000) return 'General';
     if (n >= 3000) return 'Sub junior';
@@ -611,7 +675,7 @@
   }
 
   // Debits coins at the counter. Throws { code: 'INSUFFICIENT' } if the
-  // student cannot cover the amount — re-checked at the moment of purchase.
+  // student cannot cover the amount â€” re-checked at the moment of purchase.
   async function deductForStore(studentId, amount, reason) {
     const amt = Math.max(0, Math.floor(+amount || 0));
     if (!amt) throw new Error('Enter a valid amount');
@@ -626,7 +690,7 @@
     return updated;
   }
 
-  // Manual +/− coin tweak in admin (negative allowed).
+  // Manual +/âˆ’ coin tweak in admin (negative allowed).
   async function adjustCoins(studentId, delta, reason) {
     const d = Math.floor(+delta || 0);
     if (!d) return withCoinsUpdate(studentId, (c) => c);
@@ -704,7 +768,7 @@
   async function sbDelete(table, id) {
     const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
       method: 'DELETE',
-      headers: headers(),
+      headers: writeHeaders(),
     });
     if (!res.ok) throw new Error('Delete failed (' + res.status + ')');
   }
@@ -787,6 +851,10 @@
     addScheduleEntry,
     updateScheduleEntry,
     deleteScheduleEntry,
+    verifyPin,
+    setSessionToken,
+    getSessionToken,
+    clearSessionToken,
     isSupabaseConfigured: configured,
   };
 })();

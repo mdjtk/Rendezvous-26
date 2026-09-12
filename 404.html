@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#051910" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta
+      name="description"
+      content="Page not found — Rendezvous '26, the flagship life festival at Jamia Madeenathunnoor."
+    />
+    <link rel="icon" type="image/png" href="assets/img/Logo-.png" />
+    <title>Page not found — Rendezvous '26</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background-color: #051910;
+        color: #d7e0d9;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        text-align: center;
+        overflow-x: hidden;
+      }
+      /* aurora glow baked in — survives mobile GPU blend limitations */
+      .ambient {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background-image:
+          radial-gradient(38rem 38rem at 82% -6%, rgba(163, 230, 53, 0.22), transparent 62%),
+          radial-gradient(34rem 34rem at 12% 108%, rgba(52, 211, 153, 0.18), transparent 60%),
+          radial-gradient(26rem 26rem at 50% 50%, rgba(163, 230, 53, 0.06), transparent 70%);
+      }
+      .card {
+        max-width: 34rem;
+        width: 100%;
+      }
+      .logo {
+        height: 4rem;
+        width: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 10px 30px rgba(163, 230, 53, 0.25));
+      }
+      .code {
+        font-size: clamp(4.5rem, 20vw, 8rem);
+        line-height: 1;
+        margin: 1.25rem 0 0;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        background: linear-gradient(180deg, #a3e635, #365314);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .tag {
+        margin: 0;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #a3e635;
+      }
+      h1 {
+        margin: 0.75rem 0 0;
+        font-size: clamp(1.4rem, 4vw, 1.9rem);
+        font-weight: 700;
+        color: #eaf3e6;
+      }
+      p {
+        margin: 0.75rem 0 0;
+        line-height: 1.6;
+        color: #9fb0a3;
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 1.75rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.7rem 1.15rem;
+        border-radius: 0.6rem;
+        border: 1px solid rgba(163, 230, 53, 0.35);
+        color: #a3e635;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+      .btn:hover {
+        background: #a3e635;
+        color: #051910;
+      }
+      .btn.primary {
+        background: #a3e635;
+        color: #051910;
+      }
+      .btn.primary:hover {
+        background: #bef264;
+        border-color: #bef264;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+    <main class="card">
+      <img class="logo" src="assets/img/Logo-.png" alt="Rendezvous '26" />
+      <p class="code">404</p>
+      <p class="tag">Rendezvous &rsquo;26 &middot; Decoding Phytolore</p>
+      <h1>This page decoded into nothing</h1>
+      <p>
+        The link you followed may be broken, or the page may have moved. Head back
+        to the festival and pick up the trail.
+      </p>
+      <nav class="links" aria-label="Helpful links">
+        <a class="btn primary" href="index.html">Back to home</a>
+        <a class="btn" href="results.html">Results</a>
+        <a class="btn" href="schedule.html">Schedule</a>
+        <a class="btn" href="team-points.html">Team points</a>
+      </nav>
+    </main>
+  </body>
+</html>

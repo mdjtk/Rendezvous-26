@@ -63,39 +63,65 @@ alter table public.teams replica identity full;
 alter table public.students replica identity full;
 
 -- ---------- Row Level Security ----------
--- Reads are public. Writes are web-gated by the admin password in the UI.
--- For a tougher setup, connect Supabase Auth and restrict writes to
--- authenticated admin users instead.
+-- Reads are public. Writes require a short-lived JWT from the /verify-pin
+-- Edge Function carrying the `rv26_role` claim (admin | store). The PIN is
+-- never shipped to the browser. Apply supabase/security_migration.sql on an
+-- existing database; fresh setups get these policies straight here.
 alter table public.teams enable row level security;
 alter table public.results enable row level security;
 alter table public.gallery enable row level security;
 alter table public.students enable row level security;
 alter table public.glocal_ledger enable row level security;
 
+-- Who is the caller? (mirrors security_migration.sql)
+create or replace function public.rv26_role() returns text
+language sql stable
+as $$
+  select nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'rv26_role', '')
+$$;
+
 create policy "teams readable by everyone" on public.teams
   for select using (true);
-create policy "teams writable by anyone" on public.teams
-  for all using (true) with check (true);
+create policy "teams admin writes" on public.teams
+  for all to anon, authenticated
+  using (public.rv26_role() = 'admin')
+  with check (public.rv26_role() = 'admin');
 
 create policy "results readable by everyone" on public.results
   for select using (true);
-create policy "results writable by anyone" on public.results
-  for all using (true) with check (true);
+create policy "results admin writes" on public.results
+  for all to anon, authenticated
+  using (public.rv26_role() = 'admin')
+  with check (public.rv26_role() = 'admin');
 
 create policy "gallery readable by everyone" on public.gallery
   for select using (true);
-create policy "gallery writable by anyone" on public.gallery
-  for all using (true) with check (true);
+create policy "gallery admin writes" on public.gallery
+  for all to anon, authenticated
+  using (public.rv26_role() = 'admin')
+  with check (public.rv26_role() = 'admin');
 
 create policy "students readable by everyone" on public.students
   for select using (true);
-create policy "students writable by anyone" on public.students
-  for all using (true) with check (true);
+create policy "students staff insert" on public.students
+  for insert to anon, authenticated
+  with check (public.rv26_role() in ('admin', 'store'));
+create policy "students staff update" on public.students
+  for update to anon, authenticated
+  using (public.rv26_role() in ('admin', 'store'))
+  with check (public.rv26_role() in ('admin', 'store'));
+create policy "students admin deletes" on public.students
+  for delete to anon, authenticated
+  using (public.rv26_role() = 'admin');
 
 create policy "glocal_ledger readable by everyone" on public.glocal_ledger
   for select using (true);
-create policy "glocal_ledger writable by anyone" on public.glocal_ledger
-  for all using (true) with check (true);
+create policy "ledger staff inserts" on public.glocal_ledger
+  for insert to anon, authenticated
+  with check (public.rv26_role() in ('admin', 'store'));
+create policy "ledger admin deletes" on public.glocal_ledger
+  for delete to anon, authenticated
+  using (public.rv26_role() = 'admin');
 
 -- ---------- Programme list (sections, stages, events) ----------
 create table if not exists public.programs (
@@ -113,8 +139,10 @@ alter table public.programs enable row level security;
 
 create policy "programs readable by everyone" on public.programs
   for select using (true);
-create policy "programs writable by anyone" on public.programs
-  for all using (true) with check (true);
+create policy "programs admin writes" on public.programs
+  for all to anon, authenticated
+  using (public.rv26_role() = 'admin')
+  with check (public.rv26_role() = 'admin');
 -- Seed data lives in supabase/programs_seed.sql
 
 -- ---------- On Stage schedule (admin-managed) ----------
@@ -135,8 +163,10 @@ alter table public.schedule enable row level security;
 
 create policy "schedule readable by everyone" on public.schedule
   for select using (true);
-create policy "schedule writable by anyone" on public.schedule
-  for all using (true) with check (true);
+create policy "schedule admin writes" on public.schedule
+  for all to anon, authenticated
+  using (public.rv26_role() = 'admin')
+  with check (public.rv26_role() = 'admin');
 -- Seed data lives in supabase/schedule_seed.sql
 
 -- ---------- Storage buckets ----------
@@ -148,10 +178,21 @@ insert into storage.buckets (id, name, public)
 values ('results', 'results', true)
 on conflict (id) do nothing;
 
-create policy "public upload to gallery" on storage.objects
-  for insert to anon with check (bucket_id = 'gallery');
-create policy "public upload to results" on storage.objects
-  for insert to anon with check (bucket_id = 'results');
+create policy "gallery admin uploads" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'gallery' and public.rv26_role() = 'admin');
+create policy "gallery admin deletes" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'gallery' and public.rv26_role() = 'admin');
+create policy "results admin uploads" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'results' and public.rv26_role() = 'admin');
+create policy "results admin deletes" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'results' and public.rv26_role() = 'admin');
+create policy "gallery public reads" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id in ('gallery', 'results'));
 
 -- ---------- Seed teams (idempotent) ----------
 -- Teams drive the public leaderboard; add points from Admin → Teams.

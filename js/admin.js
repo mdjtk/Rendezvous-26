@@ -35,16 +35,18 @@
       gatePw.focus();
       return;
     }
-    if (pw === C.ADMIN_PASSWORD) {
-      grant('admin');
-      return;
+    const btn = gateForm.querySelector('button[type="submit"], button');
+    if (btn) btn.disabled = true;
+    gateErr.textContent = '';
+    const pins = (C && C.PIN) || {};
+    const role = pw === pins.admin ? 'admin' : pw === pins.store ? 'store' : pw === pins.bookstall ? 'bookstall' : null;
+    if (btn) btn.disabled = false;
+    if (role) {
+      grant(role);
+    } else {
+      gateErr.textContent = 'Incorrect access code. Try again.';
+      gatePw.select();
     }
-    if (pw === C.STORE_PIN) {
-      grant('store');
-      return;
-    }
-    gateErr.textContent = 'Incorrect access code. Try again.';
-    gatePw.select();
   }
 
   function grant(role) {
@@ -68,14 +70,14 @@
     gate.classList.add('is-hidden');
     if (hero) hero.classList.add('is-hidden');
     dash.classList.remove('is-hidden');
-    document.title = role === 'store' ? 'Store Counter — Rendezvous \'26' : 'Admin — Rendezvous \'26';
+    document.title = role === 'store' || role === 'bookstall' ? 'Store Counter — Rendezvous \'26' : 'Admin — Rendezvous \'26';
     const live = DB.isSupabaseConfigured();
     setupBanner.classList.toggle('is-hidden', live);
     setupMsg.textContent = live ? 'Live data mode' : 'Supabase not configured';
     setupMsg2.textContent = live
       ? 'writing to your Supabase project'
       : 'add SUPABASE_URL + SUPABASE_ANON_KEY to js/config.js';
-    if (role === 'store') {
+    if (role === 'store' || role === 'bookstall') {
       storeBoot();
       return;
     }
@@ -94,6 +96,7 @@
   }
 
   function logout() {
+    DB.clearSessionToken();
     sessionStorage.removeItem(SESSION_KEY);
     window.location.reload();
   }
@@ -169,9 +172,15 @@
         card.innerHTML =
           '<img src="' + esc(p.url) + '" alt="' + esc(p.caption || 'Festival photo') + '" loading="lazy" />' +
           (p.caption ? '<span class="admin-item-cap">' + esc(p.caption) + '</span>' : '') +
+          '<button type="button" class="admin-dl" title="Download photo" aria-label="Download photo">' +
+          '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>' +
+          '</button>' +
           '<button type="button" class="admin-del" aria-label="Delete photo">' +
           '<svg viewBox="0 0 24 24" style="width:1rem;height:1rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
           '</button>';
+        card.querySelector('.admin-dl').addEventListener('click', () => {
+          UI.saveImage(p.url, (p.caption || 'photo ' + p.id) + UI.extOf(p.url));
+        });
         card.querySelector('.admin-del').addEventListener('click', async () => {
           if (!window.confirm('Delete this photo?')) return;
           try {
@@ -507,6 +516,9 @@
           '<div class="admin-poster-thumb">' +
           status +
           '<img src="' + esc(r.url) + '" alt="' + esc(r.event_name) + '" loading="lazy" />' +
+          '<button type="button" class="admin-dl" title="Download poster" aria-label="Download poster: ' + esc(r.event_name) + '">' +
+          '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>' +
+          '</button>' +
           '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
           '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
           '</button>' +
@@ -515,6 +527,9 @@
           '<span class="admin-poster-title">' + esc(r.event_name) + '</span>' +
           '<span class="admin-poster-cat">' + esc(r.category || '') + (r.name ? ' · ' + esc(r.name) : '') + '</span>' +
           '</div>';
+        card.querySelector('.admin-dl').addEventListener('click', () => {
+          UI.saveImage(r.url, r.event_name + UI.extOf(r.url));
+        });
         card.querySelector('.admin-del').addEventListener('click', async () => {
           if (!window.confirm('Delete the "' + r.event_name + '" result poster?')) return;
           try {
@@ -650,6 +665,8 @@
   /* --------------------- individual champions (champ) --------------------- */
 
   const champContent = document.getElementById('champContent');
+  const champCatFilter = document.getElementById('champCatFilter');
+  const CHAMP_CAT_ORDER = ['Minor', 'Premier', 'Sub junior', 'General'];
   let champStudents = [];
 
   function medalSvg(color) {
@@ -661,13 +678,44 @@
     );
   }
 
+  function championCatRank(key) {
+    const known = CHAMP_CAT_ORDER.indexOf(key);
+    if (known !== -1) return known;
+    if (key === '—') return 99;
+    return CHAMP_CAT_ORDER.length;
+  }
+
   function renderChamp() {
     champContent.innerHTML = '';
-    const ranked = champStudents
-      .filter((s) => (s.points || 0) > 0)
-      .sort((a, b) => (b.points || 0) - (a.points || 0));
+    const cat = champCatFilter ? champCatFilter.value : '';
+    const topPerCat = cat ? 20 : 5;
 
-    if (ranked.length === 0) {
+    const groups = new Map();
+    champStudents
+      .filter((s) => (s.points || 0) > 0)
+      .forEach((s) => {
+        const key = s.category || '—';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(s);
+      });
+
+    const buckets = [...groups.entries()]
+      .map(([key, list]) => ({
+        key,
+        list: [...list].sort(
+          (a, b) =>
+            (b.points || 0) - (a.points || 0) ||
+            String(a.name || '').localeCompare(String(b.name || ''))
+        ),
+      }))
+      .filter((b) => !cat || b.key === cat)
+      .sort(
+        (a, b) =>
+          championCatRank(a.key) - championCatRank(b.key) ||
+          String(a.key).localeCompare(String(b.key))
+      );
+
+    if (buckets.length === 0) {
       champContent.appendChild(
         UI.emptyState({
           title: 'No individual champions yet',
@@ -691,26 +739,37 @@
     th.innerHTML = '<span>#</span><span>Student</span><span>Category</span><span class="right">Points</span>';
     tbl.appendChild(th);
 
-    ranked.slice(0, 20).forEach((s, i) => {
-      const pos = i + 1;
-      const lead = pos === 1;
-      const row = document.createElement('div');
-      row.className = 'tp-tr' + (lead ? ' is-1' : '');
-      row.style.animationDelay = i * 60 + 'ms';
-      row.innerHTML =
-        '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
-        '<span class="tp-team">' +
-        '<span class="tp-name">' + esc(s.name) + '</span>' +
-        (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
-        '</span>' +
-        '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
-        '<span class="tp-pts right"><b>' + esc(s.points) + '</b></span>';
-      tbl.appendChild(row);
+    buckets.forEach((b) => {
+      const head = document.createElement('div');
+      head.className = 'tp-cat';
+      head.innerHTML =
+        '<span>' + esc(b.key) + '</span>' +
+        '<span>' + b.list.length + ' scoring</span>';
+      tbl.appendChild(head);
+
+      b.list.slice(0, topPerCat).forEach((s, i) => {
+        const pos = i + 1;
+        const lead = pos === 1;
+        const row = document.createElement('div');
+        row.className = 'tp-tr' + (lead ? ' is-1' : '');
+        row.style.animationDelay = i * 60 + 'ms';
+        row.innerHTML =
+          '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
+          '<span class="tp-team">' +
+          '<span class="tp-name">' + esc(s.name) + '</span>' +
+          (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
+          '</span>' +
+          '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
+          '<span class="tp-pts right"><b>' + esc(s.points) + '</b></span>';
+        tbl.appendChild(row);
+      });
     });
 
     sec.appendChild(tbl);
     champContent.appendChild(sec);
   }
+
+  if (champCatFilter) champCatFilter.addEventListener('change', renderChamp);
 
   async function loadChamp() {
     try {
@@ -1609,6 +1668,6 @@
   } catch (e) {
     role = null;
   }
-  if (role === 'admin' || role === 'store') boot(role);
+  if (role === 'admin' || role === 'store' || role === 'bookstall') boot(role);
   else gateReveal();
 })();

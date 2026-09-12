@@ -1058,8 +1058,11 @@ body.lightbox-open .fixed {
   background: var(--primary-container);
   color: var(--on-primary-container);
   padding: 0.5rem 1.25rem;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
   transition: background 0.2s;
 }
 
@@ -1133,6 +1136,27 @@ body.lightbox-open .fixed {
 
 .admin-del:hover {
   color: #fecaca;
+}
+
+.admin-dl {
+  position: absolute;
+  top: 0.5rem;
+  right: 2.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(7, 33, 21, 0.85);
+  color: var(--primary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.admin-dl:hover {
+  color: #d9f99d;
 }
 
 /* ----------------------- admin result posters ------------------------ */
@@ -2167,6 +2191,21 @@ h4 {
   text-transform: uppercase;
   color: var(--outline);
   background: rgba(7, 33, 21, 0.6);
+}
+
+.tp-cat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: rgba(7, 33, 21, 0.5);
 }
 
 .tp-tr {

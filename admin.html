@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="assets/img/Logo-.png" />
     <meta name="theme-color" content="#051910" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="/admin.html" />
     <meta
       name="description"
       content="Accreditation portal for Rendezvous '26 — publish results, upload photos and manage team points."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://ewedxrgefabskidccuhp.supabase.co" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
       rel="stylesheet"
@@ -694,6 +697,27 @@
                   Individual Confluence Scoring — top students by individual champion points.
                   Points are earned automatically when result posters are published.
                 </p>
+              </div>
+              <div
+                class="bg-surface-container-low border border-white/5 rounded-xl p-space-md grid grid-cols-1 sm:grid-cols-2 gap-space-md items-end"
+              >
+                <div class="space-y-space-2xs">
+                  <label
+                    for="champCatFilter"
+                    class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block"
+                    >Category</label
+                  >
+                  <select
+                    id="champCatFilter"
+                    class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                  >
+                    <option value="">All categories (Minor → Premier → Sub junior)</option>
+                    <option>Minor</option>
+                    <option>Premier</option>
+                    <option>Sub junior</option>
+                    <option>General</option>
+                  </select>
+                </div>
               </div>
               <div id="champContent" class="space-y-space-lg"></div>
             </div>
