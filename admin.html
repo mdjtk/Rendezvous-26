@@ -434,7 +434,7 @@
 
             <div id="panel-teams" class="panel is-hidden space-y-space-lg">
               <div
-                class="bg-surface-container-low border border-white/5 rounded-xl p-space-md space-y-space-sm"
+                class="bg-surface-container-low border border-white/5 rounded-xl p-space-md space-y-space-sm hidden"
               >
                 <div class="flex items-center justify-end gap-space-xs">
                     <input
@@ -479,6 +479,28 @@
               <div
                 class="bg-surface-container-low border border-white/5 rounded-xl p-space-md grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-md items-end"
               >
+                <label
+                  for="studentSearch"
+                  class="result-search students-search w-full sm:col-span-2 lg:col-span-3"
+                >
+                  <span class="material-symbols-outlined text-[18px]" aria-hidden="true">search</span>
+                  <input
+                    id="studentSearch"
+                    type="search"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Search student name or token…"
+                  />
+                  <span
+                    id="studentSearchClear"
+                    class="result-search-clear"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Clear search"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                  </span>
+                </label>
                 <div class="space-y-space-2xs">
                   <label
                     for="studentCatFilter"

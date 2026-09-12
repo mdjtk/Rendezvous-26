@@ -375,10 +375,15 @@
         if (off) opt.dataset.stage = 'off';
         eventOptions.appendChild(opt);
       });
-    placementOptions.innerHTML = students
-      .filter((s) => s.category === cat)
-      .map((s) => '<option value="' + esc(s.name) + '"></option>')
-      .join('');
+    const seenNames = new Set();
+    const nameOptions = [];
+    students.forEach((s) => {
+      const nm = (s.name || '').trim();
+      if (!nm || seenNames.has(nm)) return;
+      seenNames.add(nm);
+      nameOptions.push('<option value="' + esc(s.name) + '"></option>');
+    });
+    placementOptions.innerHTML = nameOptions.join('');
   }
 
   categoryField.addEventListener('change', syncResultOptions);
@@ -839,7 +844,9 @@
             String(a.name || '').localeCompare(String(b.name || ''))
         ),
       }))
-      .filter((b) => !cat || b.key === cat)
+      .filter(
+        (b) => !cat || cat === 'General' || b.key === cat
+      )
       .sort(
         (a, b) =>
           championCatRank(a.key) - championCatRank(b.key) ||
@@ -969,15 +976,29 @@
   const studentCatFilter = document.getElementById('studentCatFilter');
   const studentSort = document.getElementById('studentSort');
   const studentCountEl = document.getElementById('studentCount');
+  const studentSearch = document.getElementById('studentSearch');
+  const studentSearchClear = document.getElementById('studentSearchClear');
 
   let students = [];
+  let studentQuery = '';
+
+  function syncStudentSearchClear() {
+    if (studentSearchClear) studentSearchClear.style.display = studentQuery ? 'flex' : 'none';
+  }
 
   function filteredStudents() {
     const cat = studentCatFilter ? studentCatFilter.value : '';
     const sortKey = studentSort ? studentSort.value : 'pts';
-    const list = students.filter(
-      (s) => !cat || cat === 'General' || (s.category || '') === cat
-    );
+    const q = studentQuery.trim().toLowerCase();
+    const list = students.filter((s) => {
+      if (q) {
+        const hay = ((s.name || '') + ' ' + (s.qr_token || '') + ' ' + (s.roster_no || '')).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (!cat) return true;
+      if (cat === 'General') return true;
+      return (s.category || '') === cat;
+    });
     const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
     if (sortKey === 'team') {
       list.sort((a, b) => {
@@ -993,6 +1014,30 @@
       studentCountEl.textContent = list.length + ' student' + (list.length === 1 ? '' : 's');
     }
     return list;
+  }
+
+  if (studentSearch) {
+    studentSearch.addEventListener('input', () => {
+      studentQuery = studentSearch.value;
+      syncStudentSearchClear();
+      renderStudents();
+    });
+    if (studentSearchClear) {
+      const clear = () => {
+        studentSearch.value = '';
+        studentQuery = '';
+        syncStudentSearchClear();
+        renderStudents();
+        studentSearch.focus();
+      };
+      studentSearchClear.addEventListener('click', clear);
+      studentSearchClear.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          clear();
+        }
+      });
+    }
   }
 
   async function loadStudents() {
