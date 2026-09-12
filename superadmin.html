@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f3efe6" />
+    <meta
+      name="description"
+      content="Owner-only supervisor console for Rendezvous '26. Not indexed, not linked."
+    />
+    <link rel="icon" type="image/png" href="assets/img/Logo-.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <title>SUPERVISOR — Rendezvous '26</title>
+    <link rel="stylesheet" href="css/superadmin.css" />
+  </head>
+
+  <body>
+    <div id="ticker" aria-hidden="true">
+      <span>SUPERVISOR CONSOLE · OWNER ONLY · NOT INDEXED · NOT LINKED</span>
+      <span>SUPERVISOR CONSOLE · OWNER ONLY · NOT INDEXED · NOT LINKED</span>
+    </div>
+
+    <header id="hud">
+      <div class="hud-title">
+        <div class="super-block">SUPER</div>
+        <h1>Supervisor Console<small>Rendezvous '26 — owner layer</small></h1>
+      </div>
+      <div class="hud-meta">
+        <span class="status-chip">
+          <span class="dot" id="bridgeDot"></span>
+          <span id="bridgeLabel">bridge off</span>
+        </span>
+        <span class="status-chip" id="roleChip" title="server-issued role">…</span>
+        <span class="status-chip" id="clock">--:--:--</span>
+        <button type="button" class="nb-btn" id="logoutBtn">End session</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ---------------- GATE ---------------- -->
+      <section id="gate">
+        <div class="nb-card gate-card">
+          <div class="gate-top">
+            <div class="super-block" style="box-shadow: 4px 4px 0 var(--ink)">🔒</div>
+            <h2>Restricted Area</h2>
+          </div>
+          <div class="gate-body">
+            <p class="small">
+              This console is for the event owner only. The access code is verified on the
+              server — the supervisor code is never stored in this page.
+            </p>
+            <span class="nb-label">Supervisor access code</span>
+            <input
+              id="gatePw"
+              type="password"
+              class="pin-input"
+              autocomplete="off"
+              inputmode="text"
+              placeholder="••••••••••"
+              autofocus
+            />
+            <p id="gateErr" role="alert"></p>
+            <div class="row mt">
+              <button type="button" class="nb-btn nb-btn--ink" id="gateBtn">Unlock console</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- CONSOLE ---------------- -->
+      <section id="console" class="is-hidden">
+        <div class="tabs" role="tablist" aria-label="Supervisor sections">
+          <button type="button" class="tab is-active" data-tab="dashboard" role="tab" aria-selected="true">Dashboard</button>
+          <button type="button" class="tab" data-tab="data" role="tab" aria-selected="false">Data</button>
+          <button type="button" class="tab" data-tab="audit" role="tab" aria-selected="false">Audit</button>
+          <button type="button" class="tab" data-tab="anomalies" role="tab" aria-selected="false">Anomalies</button>
+          <button type="button" class="tab" data-tab="bot" role="tab" aria-selected="false">Bot</button>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="panel-dashboard" class="panel">
+          <div id="kpiGrid" class="kpi-grid"></div>
+          <div class="dash-cols">
+            <div class="nb-card nb-card--accent dash-panel" style="--acc: var(--yellow)">
+              <div class="head"><h3>Recent activity — ledger</h3><button type="button" class="nb-btn nb-btn--tiny" id="dashLedgerBtn">refresh</button></div>
+              <div id="dashLedger" class="feed"></div>
+            </div>
+            <div class="nb-card nb-card--accent dash-panel" style="--acc: var(--cyan)">
+              <div class="head"><h3>Audit trail — today</h3></div>
+              <div id="dashAudit" class="feed"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA -->
+        <div id="panel-data" class="panel is-hidden">
+          <div class="nb-card">
+            <div class="toolbar">
+              <div class="field">
+                <span class="nb-label">Table</span>
+                <select id="dataTable" class="nb-select">
+                  <option value="students">students</option>
+                  <option value="teams">teams</option>
+                  <option value="results">results</option>
+                  <option value="gallery">gallery</option>
+                  <option value="glocal_ledger">glocal_ledger</option>
+                  <option value="schedule">schedule</option>
+                  <option value="programs">programs</option>
+                  <option value="audit_log">audit_log</option>
+                </select>
+              </div>
+              <div class="field">
+                <span class="nb-label">Column</span>
+                <select id="dataCol" class="nb-select"><option value="">— text search —</option></select>
+              </div>
+              <div class="field" style="flex: 1; min-width: 180px">
+                <span class="nb-label">Search</span>
+                <input id="dataSearch" type="text" class="nb-input" placeholder="type to filter…" />
+              </div>
+              <div class="field">
+                <span class="nb-label">Rows</span>
+                <select id="dataLimit" class="nb-select">
+                  <option value="50">50</option>
+                  <option value="200" selected>200</option>
+                  <option value="500">500</option>
+                </select>
+              </div>
+              <div class="field">
+                <span class="nb-label">&nbsp;</span>
+                <button type="button" class="nb-btn" id="dataGo">Query</button>
+              </div>
+            </div>
+            <div id="dataMeta" class="small" style="padding: 0 16px 8px"></div>
+            <div id="dataTableWrap" class="table-wrap"></div>
+            <div class="pager">
+              <button type="button" class="nb-btn nb-btn--tiny" id="dataPrev">‹ prev</button>
+              <span id="dataPage" class="nb-label"></span>
+              <button type="button" class="nb-btn nb-btn--tiny" id="dataNext">next ›</button>
+            </div>
+          </div>
+          <div id="dataDrawer" class="drawer is-hidden"></div>
+        </div>
+
+        <!-- AUDIT -->
+        <div id="panel-audit" class="panel is-hidden">
+          <div class="nb-card">
+            <div class="toolbar">
+              <div class="field">
+                <span class="nb-label">Actor</span>
+                <input id="auditActor" type="text" class="nb-input" placeholder="super / admin / bot…" />
+              </div>
+              <div class="field">
+                <span class="nb-label">Action</span>
+                <input id="auditAction" type="text" class="nb-input" placeholder="result.add / coins.award…" />
+              </div>
+              <div class="field">
+                <span class="nb-label">&nbsp;</span>
+                <button type="button" class="nb-btn" id="auditGo">Run</button>
+              </div>
+              <div class="field" style="flex:1"></div>
+              <div class="field">
+                <span class="nb-label">&nbsp;</span>
+                <button type="button" class="nb-btn nb-btn--ink" id="auditClear">Clear filters</button>
+              </div>
+            </div>
+            <div id="auditFeed"></div>
+          </div>
+        </div>
+
+        <!-- ANOMALIES -->
+        <div id="panel-anomalies" class="panel is-hidden">
+          <div class="row mb">
+            <button type="button" class="nb-btn nb-btn--ink" id="anomalyRun">Run checks</button>
+            <span class="muted small">scans every corner: duplicates · name mismatches · ledger vs wallet · team drift · roster · storage</span>
+          </div>
+          <div id="anomalyList"></div>
+        </div>
+
+        <!-- BOT -->
+        <div id="panel-bot" class="panel is-hidden">
+          <div class="bot-layout">
+            <div class="nb-card chat-box">
+              <div class="chat-messages" id="chatMessages"></div>
+              <div class="chat-input">
+                <input id="chatText" type="text" class="nb-input" placeholder="Ask anything — data is live…" />
+                <button type="button" class="nb-btn nb-btn--lime" id="chatSend">Send ↵</button>
+              </div>
+            </div>
+            <div class="bot-side">
+              <div class="nb-card">
+                <div class="source-sel" role="group" aria-label="Bot source">
+                  <button type="button" class="tab is-active" id="srcGemini">☁ Gemini</button>
+                  <button type="button" class="tab" id="srcLocal">🔌 opencode</button>
+                </div>
+                <div class="switch-row">
+                  <span class="nb-label" id="srcState">source: gemini (always online)</span>
+                </div>
+              </div>
+              <div class="nb-card chips">
+                <span class="nb-label" style="padding: 10px 12px 0">Try asking</span>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="Give me a 1-line summary of the whole event right now.">Give me a 1-line summary of the whole event right now.</button>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="Any anomalies? List the most urgent.">Any anomalies? List the most urgent.</button>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="Who has the most coins and the most points?">Who has the most coins and the most points?</button>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="Show all results for IMLA'.">Show all results for IMLA'.</button>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="Reconcile the wallet balances against the ledger.">Reconcile the wallet balances against the ledger.</button>
+                <button type="button" class="nb-btn nb-btn--tiny chip" data-q="What changed in the last hour?">What changed in the last hour?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" role="status"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/superadmin.js"></script>
+  </body>
+</html>

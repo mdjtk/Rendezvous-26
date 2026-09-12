@@ -254,6 +254,7 @@
     if (!team) throw new Error('Team not found');
     const next = Math.max(0, Number(team.points) + d);
     await sbUpdate('teams', id, { points: next, updated_at: new Date().toISOString() });
+    audit('team.points.adjust', 'teams', id, team.name, { delta: d, from: team.points, to: next });
     return getTeams();
   }
 
@@ -261,12 +262,19 @@
     requireConfigured();
     const clean = String(name || '').trim();
     if (!clean) return null;
-    return sbInsert('teams', { name: clean, points: 0 });
+    const row = await sbInsert('teams', { name: clean, points: 0 });
+    audit('team.add', 'teams', row.id, clean);
+    return row;
   }
 
   async function deleteTeam(id) {
     requireConfigured();
+    const rows = await sbGet('teams', 'points', false).then((r) =>
+      r.filter((x) => String(x.id) === String(id))
+    );
+    const team = rows[0];
     await sbDelete('teams', id);
+    audit('team.delete', 'teams', id, team ? team.name : null, team ? { name: team.name } : null);
   }
 
   /* ------------------------------ gallery ----------------------------- */
@@ -311,6 +319,7 @@
       photo_path: path,
       caption: caption || null,
     });
+    audit('gallery.add', 'gallery', row.id, caption || row.photo_path, { path });
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.gallery, path) };
   }
 
@@ -328,6 +337,7 @@
       }
     }
     await sbDelete('gallery', id);
+    audit('gallery.delete', 'gallery', id, row ? row.photo_path : null, row ? { caption: row.caption } : null);
   }
 
   /* ------------------------------ results ----------------------------- */
@@ -412,6 +422,7 @@
       poster_path: path,
       published: true,
     });
+    audit('result.add', 'results', row.id, eventName, { category, participant_name: row.participant_name });
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
 
@@ -442,6 +453,11 @@
       points: Object.keys(rankPoints).length ? rankPoints : null,
       published: true,
     });
+    audit('result.add', 'results', row.id, eventName, {
+      category,
+      placements: places.length,
+      poster_path: path,
+    });
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
 
@@ -463,6 +479,11 @@
       }
     }
     await sbDelete('results', id);
+    audit('result.delete', 'results', id, row ? row.event_name : null, {
+      summary,
+      participant_name: row ? row.participant_name : null,
+      poster_path: row ? row.poster_path : null,
+    });
     return summary;
   }
 
@@ -602,6 +623,11 @@
     }
 
     await applyAwards(teamDeltas, studentUpdates, allTeams);
+    audit('result.award.bulk', 'results', null, String(toAward.length) + ' results', {
+      awarded: toAward.length,
+      team_deltas: Object.keys(teamDeltas).length,
+      placements: studentUpdates.length,
+    });
 
     return { awarded: toAward.length, teams: await getTeams() };
   }
@@ -623,6 +649,9 @@
     collectResultAwards(result, studentByName, teamByName, teamDeltas, studentUpdates);
     await applyAwards(teamDeltas, studentUpdates, allTeams);
     markAwarded(result.id);
+    audit('result.award', 'results', result.id, result.event_name, {
+      placements: studentUpdates.length,
+    });
 
     return { awarded: 1, placements: studentUpdates.length };
   }
@@ -770,6 +799,11 @@
       };
     });
     await sbInsertAll('students', rows);
+    audit('student.add.bulk', 'students', null, String(rows.length) + ' students', {
+      count: rows.length,
+      team: team || null,
+      category: category || null,
+    });
     return rows.length;
   }
 
@@ -784,8 +818,13 @@
 
   async function deleteStudent(id) {
     requireConfigured();
+    const rows = await sbGet('students', 'name', true).then((r) =>
+      r.filter((x) => String(x.id) === String(id))
+    );
+    const student = rows[0];
     // Ledger rows are removed by the foreign key on delete cascade.
     await sbDelete('students', id);
+    audit('student.delete', 'students', id, student ? student.name : null, student ? { name: student.name } : null);
   }
 
   async function getStudentByToken(token) {
@@ -844,6 +883,66 @@
     });
   }
 
+  /* --------------------- audit + owner reads --------------------- */
+
+  // Owner-visible record of who changed what. Best-effort: audit must never
+  // block the work it is reporting on.
+  async function audit(action, entityType, entityId, entityName, detail) {
+    try {
+      let actor = 'staff';
+      try {
+        actor = window.sessionStorage.getItem('rv26_role') || 'staff';
+      } catch (e) { /* ignore */ }
+      await sbInsert('audit_log', {
+        actor,
+        action: String(action || 'action'),
+        entity_type: entityType || null,
+        entity_id: entityId != null ? String(entityId) : null,
+        entity_name: entityName != null ? String(entityName) : null,
+        detail: detail ? JSON.parse(JSON.stringify(detail)) : null,
+      });
+    } catch (e) { /* silent */ }
+  }
+
+  // Super-admin read that attaches the staff JWT. Mirrors sbQuery so the
+  // owner can read owner-only tables (audit_log) from the console.
+  async function queryTable(table, opts) {
+    requireConfigured();
+    const o = opts || {};
+    const params = ['select=' + (o.select || '*')];
+    const order = o.order || 'created_at';
+    const dir = o.ascending ? 'asc' : 'desc';
+    params.push('order=' + order + '.' + dir + '.nullslast');
+    if (o.limit != null) params.push('limit=' + Number(o.limit));
+    if (o.offset != null) params.push('offset=' + Number(o.offset));
+    if (o.filters) {
+      Object.keys(o.filters).forEach((col) => {
+        const f = o.filters[col];
+        if (f === null || f === undefined || f === '') return;
+        if (typeof f === 'object') {
+          Object.keys(f).forEach((op) =>
+            params.push(col + '=' + op + '.' + encodeURIComponent(f[op]))
+          );
+        } else {
+          params.push(col + '=eq.' + encodeURIComponent(String(f)));
+        }
+      });
+    }
+    const res = await fetch(`${C().SUPABASE_URL}/rest/v1/${table}?${params.join('&')}`, {
+      headers: o.count ? { ...writeHeaders(), Prefer: 'count=exact' } : writeHeaders(),
+    });
+    if (!res.ok) throw new Error('Read failed (' + res.status + ')');
+    const data = await res.json();
+    if (!o.count) return data;
+    let count = Array.isArray(data) ? data.length : 0;
+    const range = res.headers.get('Content-Range');
+    if (range) {
+      const m = range.match(/\/(\d+)$/);
+      if (m) count = parseInt(m[1], 10);
+    }
+    return { data: data || [], count };
+  }
+
   async function withPointsUpdate(id, apply) {
     requireConfigured();
     const res = await fetch(
@@ -878,6 +977,7 @@
     if (!amt) return withCoinsUpdate(studentId, (c) => c);
     const updated = await withCoinsUpdate(studentId, (c) => c + amt);
     await pushLedger(studentId, amt, cleanName(reason) || 'Award', 'award');
+    audit('coins.award', 'students', studentId, cleanName(reason) || 'Award', { amount: amt });
     return updated;
   }
 
@@ -894,6 +994,10 @@
       });
     })();
     await pushLedger(studentId, -amt, cleanName(reason) || 'Store purchase', channel);
+    audit('coins.deduct', 'students', studentId, cleanName(reason) || 'Store purchase', {
+      amount: -amt,
+      channel: channel || 'store',
+    });
     return updated;
   }
 
@@ -903,6 +1007,7 @@
     if (!d) return withCoinsUpdate(studentId, (c) => c);
     const updated = await withCoinsUpdate(studentId, (c) => c + d);
     await pushLedger(studentId, d, cleanName(reason) || 'Adjustment', 'adjust');
+    audit('coins.adjust', 'students', studentId, cleanName(reason) || 'Adjustment', { delta: d });
     return updated;
   }
 
@@ -910,7 +1015,9 @@
   async function adjustStudentPoints(id, delta) {
     const d = Math.floor(+delta || 0);
     if (!d) return withPointsUpdate(id, (p) => p);
-    return withPointsUpdate(id, (p) => Math.max(0, Number(p) + d));
+    const updated = await withPointsUpdate(id, (p) => Math.max(0, Number(p) + d));
+    audit('points.adjust', 'students', id, null, { delta: d });
+    return updated;
   }
 
   function subscribeStudents(onChange) {
@@ -1002,7 +1109,7 @@
 
   async function addScheduleEntry(row) {
     requireConfigured();
-    return sbInsert('schedule', {
+    const created = await sbInsert('schedule', {
       day: row.day,
       time: row.time || '',
       title: row.title,
@@ -1011,6 +1118,8 @@
       position: row.position,
       section: row.section || null,
     });
+    audit('schedule.add', 'schedule', created.id, row.title, row);
+    return created;
   }
 
   async function updateScheduleEntry(id, patch) {
@@ -1024,11 +1133,17 @@
       position: patch.position,
       section: patch.section || null,
     });
+    audit('schedule.update', 'schedule', id, patch.title || null, patch);
   }
 
   async function deleteScheduleEntry(id) {
     requireConfigured();
+    const rows = await sbGet('schedule', 'position', true).then((r) =>
+      r.filter((x) => String(x.id) === String(id))
+    );
+    const entry = rows[0];
     await sbDelete('schedule', id);
+    audit('schedule.delete', 'schedule', id, entry ? entry.title : null, entry ? entry : null);
   }
 
   window.RV26.DB = {
@@ -1058,6 +1173,8 @@
     getStudentByName,
     getLedger,
     getLedgerAll,
+    queryTable,
+    audit,
     awardCoins,
     deductForStore,
     adjustCoins,

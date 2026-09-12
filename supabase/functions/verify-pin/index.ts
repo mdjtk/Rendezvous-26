@@ -13,7 +13,11 @@
  *     ADMIN_PIN_HASH=<sha256 of "rv26:admin:<pin>"> \
  *     STORE_PIN_HASH=<sha256 of "rv26:store:<pin>"> \
  *     BOOKSTALL_PIN_HASH=<sha256 of "rv26:bookstall:<pin>"> \
+ *     SUPER_PIN_HASH=<sha256 of "rv26:super:<pin>"> \
  *     JWT_SECRET=<Dashboard -> Settings -> API -> JWT Secret>
+ *
+ * The owner ("super") role is optional — omit SUPER_PIN_HASH to disable it.
+ * Unlike admin/store/bookstall, the super PIN is never verifiable client-side.
  *
  * Mint sample hashes with:  node supabase/generate-pins.mjs
  */
@@ -108,6 +112,7 @@ export default async (req: Request): Promise<Response> => {
   const adminHash = Deno.env.get('ADMIN_PIN_HASH');
   const storeHash = Deno.env.get('STORE_PIN_HASH');
   const bookstallHash = Deno.env.get('BOOKSTALL_PIN_HASH');
+  const superHash = Deno.env.get('SUPER_PIN_HASH');
   if (!secret || !adminHash || !storeHash || !bookstallHash) {
     return json(503, { error: 'verify-pin is not configured yet (set ADMIN_PIN_HASH, STORE_PIN_HASH, BOOKSTALL_PIN_HASH, JWT_SECRET).' });
   }
@@ -125,6 +130,7 @@ export default async (req: Request): Promise<Response> => {
   if ((await sha256Hex('rv26:admin:' + pin)) === adminHash) role = 'admin';
   else if ((await sha256Hex('rv26:store:' + pin)) === storeHash) role = 'store';
   else if ((await sha256Hex('rv26:bookstall:' + pin)) === bookstallHash) role = 'bookstall';
+  else if (superHash && (await sha256Hex('rv26:super:' + pin)) === superHash) role = 'super';
 
   if (!role) {
     await recordFailure(ip);
