@@ -3448,29 +3448,3 @@ nav[aria-label="Primary"] > div.grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
-/* ---------- manual adjustments history (points & coins controller) ---------- */
-
-.ledger-tag.is-team {
-  color: #c4b5fd;
-  border-color: rgba(196, 181, 253, 0.4);
-  background: rgba(196, 181, 253, 0.08);
-}
-
-.ledger-tag.is-student {
-  color: var(--on-surface-variant);
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.ledger-tag.is-pts {
-  color: #7dd3fc;
-  border-color: rgba(125, 211, 252, 0.4);
-  background: rgba(125, 211, 252, 0.08);
-}
-
-.ledger-tag.is-coins {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.4);
-  background: rgba(251, 191, 36, 0.08);
-}
