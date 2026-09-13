@@ -518,6 +518,70 @@
     return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, path) };
   }
 
+  // Edits an existing result: optionally replaces the poster, then rolls back
+  // any points the old row awarded and re-applies them from the new row so
+  // team / champion points and coins always match the current result.
+  async function updateResult(id, eventName, category, file, placements) {
+    requireConfigured();
+    const rows = await sbGet('results', 'created_at', false).then((r) =>
+      (r || []).filter((x) => String(x.id) === String(id))
+    );
+    const old = rows[0];
+    if (!old) throw new Error('Result not found');
+
+    const places = (placements || [])
+      .filter((p) => p && p.participant_name)
+      .map((p) => ({
+        rank: p.rank ? Number(p.rank) : null,
+        participant_name: String(p.participant_name).trim(),
+        grade: p.grade || null,
+        coins: Math.max(0, Math.floor(+p.coins || 0)) || null,
+      }));
+    const rankPoints = {};
+    (placements || []).forEach((p) => {
+      if (p.rank && p.points) rankPoints[String(p.rank)] = Number(p.points);
+    });
+    const first = places[0] || {};
+
+    let posterPath = old.poster_path;
+    let oldPoster = null;
+    if (file) {
+      posterPath = uniquePath('posters', file);
+      await sbUpload(C().STORAGE_BUCKETS.results, posterPath, file);
+      oldPoster = old.poster_path;
+    }
+
+    const row = await sbUpdate('results', id, {
+      event_name: eventName,
+      category: category || null,
+      participant_name: first.participant_name || null,
+      rank: first.rank || null,
+      places: places.length ? places : null,
+      poster_path: posterPath,
+      points: Object.keys(rankPoints).length ? rankPoints : null,
+      published: true,
+    });
+
+    if (cachedAwardStore().has(String(id))) await reverseAwards(old, 'updated');
+    markNotAwarded(id);
+
+    if (oldPoster) {
+      try {
+        await sbRemoveObjects(C().STORAGE_BUCKETS.results, [oldPoster]);
+      } catch (e) {
+        /* new poster is live; orphan cleanup is best-effort */
+      }
+    }
+
+    await awardSingle(row);
+    audit('result.update', 'results', id, row.event_name, {
+      category,
+      placements: places.length,
+      poster_path: row.poster_path,
+    });
+    return { ...row, url: publicUrl(C().STORAGE_BUCKETS.results, row.poster_path) };
+  }
+
   async function deleteResult(id, url) {
     requireConfigured();
     const rows = await sbGet('results', 'created_at', false).then((r) =>
@@ -717,7 +781,7 @@
   // individual champion points and their coins (with a ledger entry). Deltas
   // are clamped so balances never go negative, and results that were never
   // awarded simply decrement nothing.
-  async function reverseAwards(result) {
+  async function reverseAwards(result, label) {
     const allStudents = await getStudents();
     const studentByName = new Map();
     allStudents.forEach((s) => studentByName.set(cleanName(s.name).toLowerCase(), s));
@@ -726,6 +790,7 @@
     const teamByName = new Map();
     allTeams.forEach((t) => teamByName.set(t.name.toLowerCase(), t));
 
+    const action = label || 'removed';
     const teamDeltas = {};
     const studentDeltas = [];
     if (result.places) {
@@ -745,7 +810,7 @@
             id: student.id,
             champPts: pts || 0,
             coins: placeCoins,
-            reason: 'Result removed ' + place.rank + ordinal(place.rank) + ' in ' + result.event_name,
+            reason: 'Result ' + action + ' ' + place.rank + ordinal(place.rank) + ' in ' + result.event_name,
           });
         }
       }
@@ -1217,6 +1282,7 @@
     getResultsPage,
     addResult,
     addResults,
+    updateResult,
     deleteResult,
     reverseResult: reverseAwards,
     getResultsCounts,

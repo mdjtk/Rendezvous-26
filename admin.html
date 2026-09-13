@@ -207,6 +207,15 @@
               <button
                 type="button"
                 class="tab px-space-lg py-space-2xs rounded-full font-title-md text-body-sm text-on-surface-variant"
+                data-tab="coins"
+                role="tab"
+                aria-selected="false"
+              >
+                Coins Analytics
+              </button>
+              <button
+                type="button"
+                class="tab px-space-lg py-space-2xs rounded-full font-title-md text-body-sm text-on-surface-variant"
                 data-tab="students"
                 role="tab"
                 aria-selected="false"
@@ -387,13 +396,22 @@
                   />
                   <p id="resultMsg" class="font-body-sm text-body-sm mt-space-xs min-h-[1.25rem]"></p>
                 </div>
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 flex items-center gap-space-sm flex-wrap">
                   <button
                     type="submit"
+                    id="resultSubmitBtn"
                     class="h-11 px-space-lg rounded-lg bg-primary text-on-primary font-title-md text-body-sm uppercase tracking-wider hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center gap-space-xs"
                   >
-                    <span class="material-symbols-outlined text-[16px]">post_add</span>
-                    <span>Add Result</span>
+                    <span class="material-symbols-outlined text-[16px]" id="resultSubmitIcon">post_add</span>
+                    <span id="resultSubmitLabel">Add Result</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="resultCancelBtn"
+                    class="h-11 px-space-md rounded-lg bg-surface-container-high/70 text-on-surface-variant font-title-md text-body-sm uppercase tracking-wider hover:text-error hover:bg-error/10 transition-colors inline-flex items-center gap-space-xs hidden"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                    <span>Cancel</span>
                   </button>
                 </div>
               </form>
@@ -473,10 +491,13 @@
               <div id="teamList" class="team-admin-list"></div>
 
               <div class="mt-space-lg pt-space-lg border-t border-white/5">
-                <span
-                  class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block"
-                  >Added results</span
-                >
+                <div class="flex items-center gap-space-xs">
+                  <span
+                    class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider"
+                    >Added results</span
+                  >
+                  <span id="addedResultsCount" class="admin-count" aria-live="polite"></span>
+                </div>
                 <p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm mt-space-2xs">
                   The most recent posters and the points they give out per rank.
                 </p>
@@ -666,6 +687,95 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div id="panel-coins" class="panel is-hidden space-y-space-lg">
+              <div
+                class="bg-surface-container-low border border-white/5 rounded-xl p-space-md flex flex-col md:flex-row md:items-end gap-space-sm"
+              >
+                <div class="flex-1 min-w-0">
+                  <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block">
+                    Coins analytics
+                  </p>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+                    Coins given = result awards minus removed results; coins spent =
+                    store + bookstall purchases — from the coin ledger (id ≥ 89).
+                  </p>
+                </div>
+                <div class="space-y-space-2xs w-full md:w-56">
+                  <label
+                    for="coinsCatFilter"
+                    class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant block"
+                    >Category</label
+                  >
+                  <select
+                    id="coinsCatFilter"
+                    class="w-full h-11 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 focus:shadow-[0_0_0_3px_rgba(211,255,111,0.15)] transition-all"
+                  >
+                    <option value="">All categories</option>
+                    <option>Minor</option>
+                    <option>Premier</option>
+                    <option>Sub junior</option>
+                    <option>General</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+                <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
+                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
+                    Coins given
+                  </div>
+                  <div class="mt-space-xs flex items-end gap-space-2xs">
+                    <span id="coinsGivenStat" class="font-headline-lg text-headline-lg font-bold text-primary leading-none">0</span>
+                    <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Coins</span>
+                  </div>
+                </div>
+                <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
+                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
+                    Coins spent
+                  </div>
+                  <div class="mt-space-xs flex items-end gap-space-2xs">
+                    <span id="coinsSpentStat" class="font-headline-lg text-headline-lg font-bold text-error leading-none">0</span>
+                    <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Coins</span>
+                  </div>
+                </div>
+                <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
+                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
+                    Coins in balance
+                  </div>
+                  <div class="mt-space-xs flex items-end gap-space-2xs">
+                    <span id="coinsBalanceStat" class="font-headline-lg text-headline-lg font-bold text-on-surface leading-none">0</span>
+                    <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Coins</span>
+                  </div>
+                </div>
+                <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
+                  <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
+                    Students with activity
+                  </div>
+                  <div class="mt-space-xs flex items-end gap-space-2xs">
+                    <span id="coinsCoveredStat" class="font-headline-lg text-headline-lg font-bold text-on-surface leading-none">0</span>
+                    <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Covered</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
+                <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block mb-space-sm">
+                  Given vs spent by category
+                </p>
+                <div id="coinsByCategory" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm"></div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider"
+                    >Per student</span
+                  >
+                  <span id="coinsStudentCount" class="font-body-sm text-body-sm text-on-surface-variant"></span>
+                </div>
+                <ul id="coinsStudentsList" class="space-y-space-xs"></ul>
               </div>
             </div>
 

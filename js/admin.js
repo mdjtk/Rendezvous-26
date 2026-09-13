@@ -97,6 +97,7 @@
     loadRecentResults();
     loadStudents();
     loadChamp();
+    loadCoinsAnalytics();
     loadSchedule();
     loadAwardPrograms();
     loadAwardLog();
@@ -435,10 +436,96 @@
     }
   }
 
+  const resultSubmitIcon = document.getElementById('resultSubmitIcon');
+  const resultSubmitLabel = document.getElementById('resultSubmitLabel');
+  const resultCancelBtn = document.getElementById('resultCancelBtn');
+
+  let editingResultId = null;
+
+  function placeRowValues(row, place, points) {
+    row.querySelector('.placement-name').value = place.participant_name || '';
+    row.querySelector('.placement-points').value = String(points != null ? points : 0);
+    row.querySelector('.placement-grade').value = place.grade || '';
+    row.querySelector('.placement-coins').value = String(place.coins != null ? place.coins : 0);
+  }
+
+  function startEditing(result) {
+    editingResultId = String(result.id);
+    categoryField.value = result.category || 'Minor';
+    syncResultOptions();
+    eventName.value = result.event_name;
+    if (!eventName.value) {
+      const opt = document.createElement('option');
+      opt.value = result.event_name;
+      opt.textContent = result.event_name;
+      eventName.appendChild(opt);
+      eventName.value = result.event_name;
+    }
+    placementList.innerHTML = '';
+    const places = Array.isArray(result.places)
+      ? result.places.filter((p) => p && p.participant_name)
+      : [];
+    if (places.length === 0) {
+      resetPlacements();
+    } else {
+      places.forEach((p) => {
+        const row = addPlacementRow(p.rank, true);
+        const rankNum = Number(p.rank);
+        if (rankNum > 3) {
+          const sel = row.querySelector('.placement-rank');
+          const opt = document.createElement('option');
+          opt.value = String(rankNum);
+          opt.textContent = rankNum + ' — Place';
+          sel.appendChild(opt);
+          sel.value = String(rankNum);
+        }
+        const pts =
+          result.points && result.points[String(p.rank)] != null
+            ? Number(result.points[String(p.rank)])
+            : 0;
+        placeRowValues(row, p, pts);
+        placementList.appendChild(row);
+      });
+    }
+    posterInput.value = '';
+    if (result.url) {
+      posterPreview.src = result.url;
+      posterPreview.hidden = false;
+      posterDropBody.hidden = true;
+      posterLabel.classList.add('has-preview');
+    } else {
+      previewPoster(null);
+    }
+    resultSubmitIcon.textContent = 'edit';
+    resultSubmitLabel.textContent = 'Save Changes';
+    resultCancelBtn.classList.remove('hidden');
+    resultMsg.textContent =
+      'Editing "' + result.event_name + '" — saving re-applies team + champion points.';
+    resultMsg.classList.remove('is-error');
+    resultForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function stopEditing() {
+    editingResultId = null;
+    eventName.value = '';
+    categoryField.value = 'Minor';
+    syncResultOptions();
+    resetPlacements();
+    posterInput.value = '';
+    previewPoster(null);
+    resultSubmitIcon.textContent = 'post_add';
+    resultSubmitLabel.textContent = 'Add Result';
+    resultCancelBtn.classList.add('hidden');
+    resultMsg.textContent = '';
+  }
+
+  resultCancelBtn.addEventListener('click', stopEditing);
+
   resultForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const wasEditing = !!editingResultId;
     const file = posterInput.files && posterInput.files[0];
-    if (!file) {
+    if (!wasEditing && !file) {
       resultMsg.textContent = 'Choose a poster image first.';
       resultMsg.classList.add('is-error');
       return;
@@ -458,25 +545,35 @@
       return;
     }
     try {
-      const row = await DB.addResults(
-        eventName.value.trim(),
-        categoryField.value.trim() || 'Minor',
-        file,
-        placements
-      );
-      await DB.awardSingle(row);
-      resultMsg.textContent = 'Saved — team + champion points awarded for ' + placements.length + ' place(s).';
+      if (wasEditing) {
+        await DB.updateResult(
+          editingResultId,
+          eventName.value.trim(),
+          categoryField.value.trim() || 'Minor',
+          file || null,
+          placements
+        );
+      } else {
+        const row = await DB.addResults(
+          eventName.value.trim(),
+          categoryField.value.trim() || 'Minor',
+          file,
+          placements
+        );
+        await DB.awardSingle(row);
+      }
+      stopEditing();
+      resultMsg.textContent = wasEditing
+        ? 'Updated — team + champion points re-applied for ' + placements.length + ' place(s).'
+        : 'Saved — team + champion points awarded for ' + placements.length + ' place(s).';
       resultMsg.classList.remove('is-error');
-      eventName.value = '';
-      categoryField.value = 'Minor';
-      resetPlacements();
-      syncResultOptions();
-      posterInput.value = '';
-      previewPoster(null);
       resultOffset = 0;
       await loadResults();
+      loadRecentResults();
     } catch (err) {
-      resultMsg.textContent = 'Saving failed — try again.';
+      resultMsg.textContent = wasEditing
+        ? 'Save failed — no changes applied.'
+        : 'Saving failed — try again.';
       resultMsg.classList.add('is-error');
     }
   });
@@ -533,6 +630,9 @@
           '<button type="button" class="admin-dl" title="Download poster" aria-label="Download poster: ' + esc(r.event_name) + '">' +
           '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>' +
           '</button>' +
+          '<button type="button" class="admin-edit" title="Edit result" aria-label="Edit result: ' + esc(r.event_name) + '">' +
+          '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M17 3l4 4L8 20H4v-4L17 3z"/></svg>' +
+          '</button>' +
           '<button type="button" class="admin-del" title="Delete result" aria-label="Delete result: ' + esc(r.event_name) + '">' +
           '<svg viewBox="0 0 24 24" style="width:0.9rem;height:0.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
           '</button>' +
@@ -543,6 +643,9 @@
           '</div>';
         card.querySelector('.admin-dl').addEventListener('click', () => {
           UI.saveImage(r.url, r.event_name + UI.extOf(r.url));
+        });
+        card.querySelector('.admin-edit').addEventListener('click', () => {
+          startEditing(r);
         });
         card.querySelector('.admin-del').addEventListener('click', async () => {
           if (!window.confirm('Delete "' + r.event_name + '" and reverse its awarded points + coins?')) return;
@@ -600,6 +703,7 @@
   let teams = [];
 
   const recentResultsList = document.getElementById('recentResultsList');
+  const addedResultsCount = document.getElementById('addedResultsCount');
 
   const TEAM_META = [
     { match: /tanzanian/i, code: 'TT', color: '#A52A2A' },
@@ -634,16 +738,26 @@
 
   async function loadRecentResults() {
     try {
-      const [resultsRes, studentsRes, teamsRes] = await Promise.all([
+      const [resultsRes, studentsRes, teamsRes, counts] = await Promise.all([
         DB.getResultsPage({ published: true }),
         DB.getStudents(),
         DB.getTeams(),
+        DB.getResultsCounts(),
       ]);
       renderRecentResults(resultsRes.data || [], studentsRes || [], teamsRes || []);
+      showAddedResultsCount(counts);
     } catch (err) {
       recentResultsList.innerHTML = '';
+      showAddedResultsCount(null);
       recentResultsList.appendChild(UI.emptyState({ title: 'Could not load recent results.', hint: ' ', icon: 'result' }));
     }
+  }
+
+  function showAddedResultsCount(counts) {
+    if (!addedResultsCount) return;
+    const total = counts && counts.total != null ? Number(counts.total) : 0;
+    addedResultsCount.textContent =
+      total === 0 ? '' : total + (total === 1 ? ' result' : ' results') + ' total';
   }
 
   function renderRecentResults(results, students, teams) {
@@ -986,6 +1100,181 @@
   adjStuPtsSub.addEventListener('click', () => applyStudentPoints(-1));
   adjStuCoinsAdd.addEventListener('click', () => applyStudentCoins(1));
   adjStuCoinsSub.addEventListener('click', () => applyStudentCoins(-1));
+
+  /* ----------------------------- coins analytics ----------------------------- */
+
+  const COIN_CATEGORIES = ['Minor', 'Premier', 'Sub junior', 'General'];
+
+  // Analytics only trust coin-ledger rows from this id onward (older rows are
+  // seed / test data). Coins given = award deltas plus remove deltas (remove
+  // rows are negative, so they net out duplicate awards); coins spent = store
+  // + bookstall deltas.
+  const COINS_LEDGER_FROM = 89;
+
+  const coinsCatFilter = document.getElementById('coinsCatFilter');
+  const coinsGivenStat = document.getElementById('coinsGivenStat');
+  const coinsSpentStat = document.getElementById('coinsSpentStat');
+  const coinsCoveredStat = document.getElementById('coinsCoveredStat');
+  const coinsBalanceStat = document.getElementById('coinsBalanceStat');
+  const coinsByCategory = document.getElementById('coinsByCategory');
+  const coinsStudentsList = document.getElementById('coinsStudentsList');
+  const coinsStudentCount = document.getElementById('coinsStudentCount');
+
+  let coinsStudents = [];
+  let coinsPerStudent = {};
+
+  async function loadCoinsAnalytics() {
+    try {
+      const [ledgerRows, studentsList] = await Promise.all([DB.getLedgerAll(), DB.getStudents()]);
+      coinsStudents = studentsList || [];
+      coinsPerStudent = {};
+      (ledgerRows || []).forEach((row) => {
+        if (row.channel === 'adjust') return;
+        if (!row.id || Number(row.id) < COINS_LEDGER_FROM) return;
+        const sid = row.student_id;
+        if (sid == null) return;
+        const rec = (coinsPerStudent[sid] = coinsPerStudent[sid] || { given: 0, spent: 0 });
+        const d = Number(row.delta) || 0;
+        // Remove rows carry negative deltas (awards reversed), so summing them
+        // nets out duplicates instead of re-adding them.
+        if (row.channel === 'award' || row.channel === 'remove') rec.given += d;
+        else if (row.channel === 'store' || row.channel === 'bookstall') rec.spent += d;
+      });
+      renderCoinsAnalytics();
+    } catch (err) {
+      [coinsGivenStat, coinsSpentStat, coinsCoveredStat, coinsBalanceStat].forEach((el) => {
+        if (el) el.textContent = '\u2014';
+      });
+      if (coinsStudentsList) {
+        coinsStudentsList.innerHTML = '';
+        coinsStudentsList.appendChild(
+          UI.emptyState({ title: 'Could not load analytics.', hint: ' ', icon: 'points' })
+        );
+      }
+    }
+  }
+
+  function coinsFilteredStudents() {
+    const cat = coinsCatFilter.value;
+    if (!cat) return coinsStudents;
+    return coinsStudents.filter((s) => String(s.category) === cat);
+  }
+
+  function coinsReport(studentList) {
+    const rows = studentList.map((s) => {
+      const rec = coinsPerStudent[s.id] || { given: 0, spent: 0 };
+      return { ...s, given: rec.given, spent: Math.abs(rec.spent), balance: Number(s.coins) || 0 };
+    });
+    // Only surface ledger entries whose student no longer exists, and only in
+    // the unfiltered view. When a category filter is active the excluded
+    // students are simply not part of that view — they are not "unknown".
+    if (!coinsCatFilter.value) {
+      Object.keys(coinsPerStudent).forEach((sid) => {
+        if (!studentList.some((s) => String(s.id) === String(sid))) {
+          const rec = coinsPerStudent[sid];
+          rows.push({
+            id: Number(sid),
+            name: 'Unknown student',
+            category: 'Other',
+            team: null,
+            given: rec.given,
+            spent: Math.abs(rec.spent),
+            balance: 0,
+          });
+        }
+      });
+    }
+    return rows;
+  }
+
+  function renderCoinsAnalytics() {
+    const rows = coinsReport(coinsFilteredStudents());
+    const totalGiven = rows.reduce((acc, r) => acc + r.given, 0);
+    const totalSpent = rows.reduce((acc, r) => acc + r.spent, 0);
+    const totalBalance = rows.reduce((acc, r) => acc + r.balance, 0);
+    const covered = rows.filter((r) => r.given > 0 || r.spent > 0);
+    if (coinsGivenStat) coinsGivenStat.textContent = String(totalGiven);
+    if (coinsSpentStat) coinsSpentStat.textContent = String(totalSpent);
+    if (coinsBalanceStat) coinsBalanceStat.textContent = String(totalBalance);
+    if (coinsCoveredStat) coinsCoveredStat.textContent = String(covered.length);
+    renderCoinsByCategory(rows);
+    renderCoinsStudents(covered);
+  }
+
+  function renderCoinsByCategory(rows) {
+    coinsByCategory.innerHTML = '';
+    const byCat = {};
+    rows.forEach((r) => {
+      const c = COIN_CATEGORIES.includes(r.category) ? r.category : 'Other';
+      if (!byCat[c]) byCat[c] = { given: 0, spent: 0, n: 0 };
+      byCat[c].given += r.given;
+      byCat[c].spent += r.spent;
+      if (r.given > 0 || r.spent > 0) byCat[c].n += 1;
+    });
+    COIN_CATEGORIES.forEach((c) => {
+      const row = byCat[c] || { given: 0, spent: 0, n: 0 };
+      const card = document.createElement('div');
+      card.className = 'rounded-lg bg-surface-container-high/50 border border-white/5 p-space-md';
+      card.innerHTML =
+        '<div class="font-label-code text-label-code text-primary uppercase tracking-widest">' +
+        esc(c) +
+        '</div>' +
+        '<div class="mt-space-2xs font-body-sm text-body-sm text-on-surface-variant">' +
+        '+' +
+        row.given +
+        ' given &middot; \u2212' +
+        row.spent +
+        ' spent &middot; ' +
+        row.n +
+        (row.n === 1 ? ' student' : ' students') +
+        '</div>';
+      coinsByCategory.appendChild(card);
+    });
+  }
+
+  function renderCoinsStudents(rows) {
+    const sorted = rows.slice().sort((a, b) => b.given - a.given || b.balance - a.balance);
+    coinsStudentCount.textContent = sorted.length
+      ? sorted.length + (sorted.length === 1 ? ' student' : ' students')
+      : '';
+    coinsStudentsList.innerHTML = '';
+    if (sorted.length === 0) {
+      coinsStudentsList.appendChild(
+        UI.emptyState({
+          title: 'No activity yet',
+          hint: 'Coins are given from result awards and spent at the store.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+    sorted.forEach((s, i) => {
+      const li = document.createElement('li');
+      li.className = 'admin-team';
+      li.innerHTML =
+        '<span class="admin-rank">' +
+        esc(i + 1) +
+        '</span>' +
+        '<span class="admin-team-name">' +
+        esc(s.name) +
+        '<span class="coins-name-sub">' +
+        esc([s.category, s.team].filter(Boolean).join(' \u00b7 ') || 'No team') +
+        '</span>' +
+        '</span>' +
+        '<span class="coins-metric is-given" title="Coins given (awards minus removals)">+' +
+        esc(s.given) +
+        '</span>' +
+        '<span class="coins-metric is-spent" title="Coins spent (store + bookstall)">\u2212' +
+        esc(s.spent) +
+        '</span>' +
+        '<span class="admin-team-pts" title="Current coin balance">' +
+        esc(s.balance) +
+        ' left</span>';
+      coinsStudentsList.appendChild(li);
+    });
+  }
+
+  if (coinsCatFilter) coinsCatFilter.addEventListener('change', renderCoinsAnalytics);
 
   /* --------------------- individual champions (champ) --------------------- */
 

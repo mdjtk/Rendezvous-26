@@ -1196,6 +1196,27 @@ body.lightbox-open .fixed {
   color: #d9f99d;
 }
 
+.admin-edit {
+  position: absolute;
+  top: 0.5rem;
+  right: 5.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(7, 33, 21, 0.85);
+  color: #facc15;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.admin-edit:hover {
+  color: #fde68a;
+}
+
 /* ----------------------- admin result posters ------------------------ */
 .admin-poster {
   position: relative;
@@ -1367,6 +1388,22 @@ body.lightbox-open .fixed {
   gap: 0.75rem;
 }
 
+.admin-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-family: var(--font-label);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-align: center;
+}
+
 .admin-team {
   display: flex;
   align-items: center;
@@ -1402,6 +1439,32 @@ body.lightbox-open .fixed {
   font-weight: 700;
   font-size: 1rem;
   color: var(--on-surface-variant);
+}
+
+.coins-name-sub {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--on-surface-variant);
+  white-space: normal;
+}
+
+.coins-metric {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-align: right;
+}
+
+.coins-metric.is-given {
+  color: var(--primary);
+}
+
+.coins-metric.is-spent {
+  color: var(--error);
 }
 
 .recent-result-chips {
