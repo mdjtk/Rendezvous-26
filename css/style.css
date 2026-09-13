@@ -3203,3 +3203,248 @@ nav[aria-label="Primary"] > div.grid {
 .logo{
   width: 72%;
 }
+
+/* --------------------------- clickable row cursors ------------------------- */
+.is-clickable {
+  cursor: pointer;
+}
+
+.student-row.is-clickable:hover,
+.admin-team.is-clickable:hover,
+.ledger-row.is-clickable:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  background: var(--surface-container-high);
+}
+
+/* ----------------------- champ row profile info button --------------------- */
+.champ-info {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.champ-info:hover,
+.champ-info:focus-visible {
+  color: var(--primary);
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* --------------------------- student detail modal -------------------------- */
+.student-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(5, 25, 16, 0.82);
+  backdrop-filter: blur(6px);
+  animation: fade-in 0.25s ease-out both;
+}
+
+.student-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  background: var(--surface-container-low);
+  padding: 1.5rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.sd-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.sd-head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding-right: 2.5rem;
+}
+
+.sd-avatar {
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--on-primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+}
+
+.sd-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--on-background);
+}
+
+.sd-line {
+  font-family: var(--font-label);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--outline);
+}
+
+.sd-token {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--on-surface-variant);
+}
+
+.sd-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.625rem;
+  margin: 1.25rem 0;
+}
+
+.sd-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  background: var(--surface-container-lowest);
+  padding: 0.625rem 0.75rem;
+}
+
+.sd-chip-label {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--outline);
+}
+
+.sd-chip-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--on-background);
+}
+
+.sd-stats .sd-chip:nth-child(2) .sd-chip-val {
+  color: #fbbf24;
+}
+
+.sd-section {
+  margin-top: 1.5rem;
+}
+
+.sd-section-title {
+  margin-bottom: 0.625rem;
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.sd-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sd-empty {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+  padding: 0.25rem 0;
+}
+
+.sd-empty.is-error {
+  color: var(--error);
+}
+
+.sd-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  background: var(--surface-container-lowest);
+  padding: 0.625rem 0.875rem;
+}
+
+.sd-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-row-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--on-background);
+}
+
+.sd-row-sub {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--outline);
+}
+
+.sd-row-pos {
+  flex: none;
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.2rem 0.55rem;
+  background: rgba(163, 230, 53, 0.14);
+  color: var(--primary);
+}
+
+.sd-row-val {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--on-surface-variant);
+}
+
+@media (max-width: 480px) {
+  .sd-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -1100,6 +1100,12 @@
   adjStuPtsSub.addEventListener('click', () => applyStudentPoints(-1));
   adjStuCoinsAdd.addEventListener('click', () => applyStudentCoins(1));
   adjStuCoinsSub.addEventListener('click', () => applyStudentCoins(-1));
+  if (adjStudentName) {
+    adjStudentName.classList.add('is-clickable');
+    adjStudentName.addEventListener('click', () => {
+      if (adjStudent) openStudentDetail(adjStudent);
+    });
+  }
 
   /* ----------------------------- coins analytics ----------------------------- */
 
@@ -1270,6 +1276,11 @@
         '<span class="admin-team-pts" title="Current coin balance">' +
         esc(s.balance) +
         ' left</span>';
+      const st = students.find((x) => String(x.id) === String(s.id));
+      if (st) {
+        li.classList.add('is-clickable');
+        li.addEventListener('click', () => openStudentDetail(st));
+      }
       coinsStudentsList.appendChild(li);
     });
   }
@@ -1414,6 +1425,9 @@
           '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
           '<span class="tp-team">' +
           '<span class="tp-name">' + esc(s.name) + '</span>' +
+          '<button type="button" class="champ-info" data-act="info" title="Student profile" aria-label="Profile for ' + esc(s.name) + '">' +
+          '<svg viewBox="0 0 24 24" style="width:.9rem;height:.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>' +
+          '</button>' +
           (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
           '</span>' +
           '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
@@ -1424,6 +1438,13 @@
               '</span>'
             : '') +
           '</span>';
+        const infoBtn = row.querySelector('[data-act="info"]');
+        if (infoBtn) {
+          infoBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openStudentDetail(s);
+          });
+        }
         tbl.appendChild(row);
         if (hasDetail) {
           const wrap = document.createElement('div');
@@ -1624,6 +1645,12 @@
         }
       });
 
+      row.classList.add('is-clickable');
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.pill-btn')) return;
+        openStudentDetail(s);
+      });
+
       studentList.appendChild(row);
     });
   }
@@ -1722,8 +1749,152 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeQrModal();
+    if (e.key === 'Escape') {
+      closeQrModal();
+      const sd = document.querySelector('.student-modal');
+      if (sd) sd.remove();
+    }
   });
+
+  /* ---------------------------- student detail ------------------------------ */
+
+  // Shared "full info" popup opened when a student is clicked anywhere in the
+  // admin: profile + totals, award placements, store/bookstall purchases and
+  // the remaining coin-ledger activity.
+  async function openStudentDetail(s) {
+    if (!s) return;
+    const modal = document.createElement('div');
+    modal.className = 'student-modal';
+    modal.innerHTML =
+      '<div class="student-modal-card">' +
+      '  <button type="button" class="round-btn sd-close" aria-label="Close">' +
+      '    <svg viewBox="0 0 24 24" style="width:1.25rem;height:1.25rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+      '  </button>' +
+      '  <div class="sd-head">' +
+      '    <span class="sd-avatar">' + esc(initials(s.name)) + '</span>' +
+      '    <div class="sd-meta">' +
+      '      <span class="sd-name">' + esc(s.name) + '</span>' +
+      '      <span class="sd-line">' + esc([s.category, s.team].filter(Boolean).join(' \u00b7 ') || 'No team') + '</span>' +
+      '      <span class="sd-token">' + esc(s.qr_token || '\u2014') + (s.roster_no ? ' \u00b7 No. ' + esc(s.roster_no) : '') + '</span>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="sd-stats">' +
+      sdStat('Champion pts', s.points) +
+      sdStat('Coins', s.coins) +
+      '    <div class="sd-chip"><span class="sd-chip-label">Team pts</span><span class="sd-chip-val" id="sdTeamPts">\u2014</span></div>' +
+      '  </div>' +
+      '  <button type="button" class="btn-lime" id="sdQr" style="width:100%">Print QR</button>' +
+      '  <div class="sd-section"><div class="sd-section-title">Awards &amp; placements</div><div class="sd-body" id="sdAwards"><div class="sd-empty">Loading\u2026</div></div></div>' +
+      '  <div class="sd-section"><div class="sd-section-title">Store &amp; bookstall purchases</div><div class="sd-body" id="sdPurchases"><div class="sd-empty">Loading\u2026</div></div></div>' +
+      '  <div class="sd-section"><div class="sd-section-title">Activity</div><div class="sd-body" id="sdActivity"><div class="sd-empty">Loading\u2026</div></div></div>' +
+      '</div>';
+
+    modal.querySelector('.sd-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+    modal.querySelector('#sdQr').addEventListener('click', () => printQrs(qrCard(s)));
+    document.body.appendChild(modal);
+
+    const alive = () => modal.isConnected;
+    const body = (id) => modal.querySelector('#' + id);
+    const empty = (el, text) => {
+      if (alive()) el.innerHTML = '<div class="sd-empty">' + esc(text) + '</div>';
+    };
+
+    const teamName = String(s.team || '').toLowerCase();
+    if (teamName) {
+      const team = teams.find((t) => String(t.name || '').toLowerCase() === teamName);
+      if (team) {
+        const el = modal.querySelector('#sdTeamPts');
+        if (alive()) el.textContent = String(Number(team.points) || 0);
+      }
+    }
+
+    Promise.all([DB.getLedger(s.id), DB.getResults()])
+      .then(([ledger, results]) => {
+        const key = champCleanName(s.name);
+        const awards = [];
+        (results || []).forEach((r) => {
+          const awarded = r.points_awarded === undefined ? r.published === true : r.points_awarded === true;
+          if (!awarded || !Array.isArray(r.places)) return;
+          (r.places || []).forEach((p) => {
+            if (!p || !p.participant_name || !p.rank) return;
+            if (champCleanName(p.participant_name) !== key) return;
+            const pts = r.points ? Number(r.points[String(p.rank)]) || 0 : Number(p.pts) || 0;
+            awards.push({
+              event: r.event_name || '\u2014',
+              category: r.category || '',
+              rank: Number(p.rank),
+              pts,
+              coins: Math.max(0, Math.floor(+p.coins || 0)),
+            });
+          });
+        });
+        awards.sort((a, b) => b.pts - a.pts || String(a.event).localeCompare(String(b.event)));
+
+        const purchases = [];
+        const activity = [];
+        (ledger || []).forEach((r) => {
+          const ch = channelOf(r);
+          if (ch === 'store' || ch === 'book') purchases.push(r);
+          else activity.push(r);
+        });
+
+        const awardsEl = body('sdAwards');
+        if (alive()) {
+          if (!awards.length) empty(awardsEl, 'No award placements recorded yet.');
+          else awardsEl.innerHTML = awards.map(awardRow).join('');
+        }
+        const buysEl = body('sdPurchases');
+        if (alive()) {
+          if (!purchases.length) empty(buysEl, 'No store or bookstall purchases yet.');
+          else buysEl.innerHTML = purchases.map((r) => ledgerRow(r)).join('');
+        }
+        const actEl = body('sdActivity');
+        if (alive()) {
+          if (!activity.length) empty(actEl, 'No other activity yet.');
+          else actEl.innerHTML = activity.map((r) => ledgerRow(r)).join('');
+        }
+      })
+      .catch(() => {
+        ['sdAwards', 'sdPurchases', 'sdActivity'].forEach((id) => {
+          const el = body(id);
+          if (el && alive()) el.innerHTML = '<div class="sd-empty is-error">Could not load this section.</div>';
+        });
+      });
+  }
+
+  function sdStat(label, value) {
+    return '<div class="sd-chip"><span class="sd-chip-label">' + esc(label) + '</span>' +
+      '<span class="sd-chip-val">' + esc(value == null ? '\u2014' : String(value)) + '</span></div>';
+  }
+
+  function awardRow(a) {
+    return (
+      '<div class="sd-row">' +
+      '<div class="sd-row-main"><span class="sd-row-title">' + esc(a.event) + '</span>' +
+      '<span class="sd-row-sub">' + esc(a.category || '') + (a.coins ? ' \u00b7 ' + esc(a.coins) + ' coins' : '') + '</span></div>' +
+      '<span class="sd-row-pos">' + esc(champRankLabel(a.rank)) + '</span>' +
+      '<span class="sd-row-val">' + esc(a.pts) + ' pts</span>' +
+      '</div>'
+    );
+  }
+
+  function ledgerRow(r) {
+    const ch = CHANNEL_TAGS[channelOf(r)] || CHANNEL_TAGS.store;
+    const delta = Number(r.delta) || 0;
+    return (
+      '<div class="ledger-row">' +
+      '<span class="ledger-delta ' + (delta >= 0 ? 'is-add' : 'is-sub') + '">' +
+      (delta >= 0 ? '+' : '\u2212') + Math.abs(delta) +
+      '</span>' +
+      '<span class="ledger-reason">' + esc(r.reason || 'Ledger entry') + '</span>' +
+      '<span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span>' +
+      '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>' +
+      '</div>'
+    );
+  }
 
   /* ----------------------------- festivita: awards -------------------------- */
 
@@ -1890,6 +2061,11 @@
           '<span class="ledger-reason">' + esc(studentName(r.student_id)) + ' · ' + esc(r.reason || 'Festivita point') + '</span>' +
           '<span class="ledger-tag ' + ch.cls + '">' + ch.label + '</span>' +
           '<span class="ledger-date">' + esc(ledgerDate(r)) + '</span>';
+        const st = students.find((x) => String(x.id) === String(r.student_id));
+        if (st) {
+          li.classList.add('is-clickable');
+          li.addEventListener('click', () => openStudentDetail(st));
+        }
         awardLog.appendChild(li);
       });
     } catch (err) {
