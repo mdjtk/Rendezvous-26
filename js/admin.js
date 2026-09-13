@@ -98,6 +98,7 @@
     loadStudents();
     loadChamp();
     loadCoinsAnalytics();
+    loadAdjustHistory();
     loadSchedule();
     loadAwardPrograms();
     loadAwardLog();
@@ -929,7 +930,14 @@
   const adjStuCoinsAdd = document.getElementById('adjStuCoinsAdd');
   const adjStuCoinsSub = document.getElementById('adjStuCoinsSub');
 
+  const adjustHistScope = document.getElementById('adjustHistScope');
+  const adjustHistKind = document.getElementById('adjustHistKind');
+  const adjustHistRefresh = document.getElementById('adjustHistRefresh');
+  const adjustHistCount = document.getElementById('adjustHistCount');
+  const adjustHistList = document.getElementById('adjustHistList');
+
   let adjStudent = null;
+  let adjustHistoryRows = [];
 
   function adjErrOn(el, msg) {
     if (!el) return;
@@ -989,12 +997,13 @@
     }
     const team = teams.find((t) => String(t.id) === String(id));
     try {
-      await DB.adjustTeamPoints(id, delta > 0 ? amt : -amt);
+      await DB.adjustTeamPoints(id, delta > 0 ? amt : -amt, delta > 0 ? 'Manual add' : 'Manual deduct');
       await loadTeams();
       adjMsgOn(
         adjMsg,
         (delta > 0 ? 'Added ' : 'Reduced ') + amt + ' point' + (amt === 1 ? '' : 's') + ' to ' + (team ? team.name : 'the team') + '.'
       );
+      await loadAdjustHistory();
     } catch (err) {
       adjMsgOn(adjMsg, 'Could not update the team.', true);
     }
@@ -1063,10 +1072,11 @@
       return;
     }
     try {
-      const updated = await DB.adjustStudentPoints(adjStudent.id, delta > 0 ? amt : -amt);
+      const updated = await DB.adjustStudentPoints(adjStudent.id, delta > 0 ? amt : -amt, delta > 0 ? 'Manual add' : 'Manual deduct');
       refreshAdjStudentValues(updated || adjStudent);
       adjMsgOn(adjStudentMsg, (delta > 0 ? 'Added ' : 'Reduced ') + amt + ' point' + (amt === 1 ? '' : 's') + '.');
       await loadStudents();
+      await loadAdjustHistory();
     } catch (err) {
       adjMsgOn(adjStudentMsg, 'Could not update points.', true);
     }
@@ -1091,6 +1101,7 @@
         (delta > 0 ? 'Added ' : 'Reduced ') + Math.abs(d) + ' coin' + (Math.abs(d) === 1 ? '' : 's') + '.'
       );
       await loadStudents();
+      await loadAdjustHistory();
     } catch (err) {
       adjMsgOn(adjStudentMsg, 'Could not update coins.', true);
     }
@@ -1107,14 +1118,100 @@
     });
   }
 
+  /* ------------------------ manual adjustments history ------------------------ */
+
+  function adjustHistFiltered() {
+    const scope = adjustHistScope ? adjustHistScope.value : '';
+    const kind = adjustHistKind ? adjustHistKind.value : '';
+    return adjustHistoryRows.filter((r) => {
+      if (scope && r.scope !== scope) return false;
+      if (kind && r.kind !== kind) return false;
+      return true;
+    });
+  }
+
+  function adjustHistDate(r) {
+    const d = new Date(r.created_at || Date.now());
+    if (isNaN(d)) return '';
+    return ledgerDate(r) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderAdjustHistory() {
+    if (!adjustHistList) return;
+    const rows = adjustHistFiltered();
+    if (adjustHistCount) {
+      adjustHistCount.textContent = rows.length
+        ? rows.length + (rows.length === 1 ? ' adjustment' : ' adjustments')
+        : '';
+    }
+    adjustHistList.innerHTML = '';
+    if (!rows.length) {
+      adjustHistList.appendChild(
+        UI.emptyState({
+          title: 'No adjustments recorded yet.',
+          hint: 'Team points and individual +/− tweaks made from this controller will appear here.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+    rows.forEach((r) => {
+      const li = document.createElement('li');
+      li.className = 'ledger-row';
+      const delta = Number(r.delta) || 0;
+      const isTeam = r.scope === 'team';
+      const target = esc(r.target_name || (isTeam ? 'Unknown team' : 'Unknown student'));
+      li.innerHTML =
+        '<span class="ledger-delta ' + (delta >= 0 ? 'is-add' : 'is-sub') + '">' +
+        (delta >= 0 ? '+' : '−') + Math.abs(delta) +
+        '</span>' +
+        '<span class="ledger-tag ' + (isTeam ? 'is-team' : 'is-student') + '">' + (isTeam ? 'Team' : 'Student') + '</span>' +
+        '<span class="ledger-reason">' + target + (r.reason ? ' · ' + esc(r.reason) : '') + '</span>' +
+        '<span class="ledger-tag ' + (r.kind === 'coins' ? 'is-coins' : 'is-pts') + '">' + (r.kind === 'coins' ? 'Coins' : 'Pts') + '</span>' +
+        '<span class="ledger-date">' + esc(adjustHistDate(r)) + '</span>';
+      if (!isTeam) {
+        const st = students.find((x) => String(x.id) === String(r.target_id));
+        if (st) {
+          li.classList.add('is-clickable');
+          li.addEventListener('click', () => openStudentDetail(st));
+        }
+      }
+      adjustHistList.appendChild(li);
+    });
+  }
+
+  async function loadAdjustHistory() {
+    if (!adjustHistList) return;
+    try {
+      adjustHistoryRows = (await DB.getAdjustHistory(150)) || [];
+    } catch (err) {
+      adjustHistoryRows = [];
+      if (adjustHistCount) adjustHistCount.textContent = '';
+      adjustHistList.innerHTML = '';
+      adjustHistList.appendChild(
+        UI.emptyState({
+          title: 'History log not set up yet.',
+          hint: 'Apply the supabase/adjust_history.sql migration to enable the manual-adjustments history.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+    renderAdjustHistory();
+  }
+
+  if (adjustHistScope) adjustHistScope.addEventListener('change', renderAdjustHistory);
+  if (adjustHistKind) adjustHistKind.addEventListener('change', renderAdjustHistory);
+  if (adjustHistRefresh) adjustHistRefresh.addEventListener('click', loadAdjustHistory);
+
   /* ----------------------------- coins analytics ----------------------------- */
 
   const COIN_CATEGORIES = ['Minor', 'Premier', 'Sub junior', 'General'];
 
   // Analytics only trust coin-ledger rows from this id onward (older rows are
-  // seed / test data). Coins given = award deltas plus remove deltas (remove
+  // seed / test data). Coins given = award + remove + adjust deltas (remove
   // rows are negative, so they net out duplicate awards); coins spent = store
-  // + bookstall deltas.
+  // + book + bookstall deltas.
   const COINS_LEDGER_FROM = 89;
 
   const coinsCatFilter = document.getElementById('coinsCatFilter');
@@ -1135,16 +1232,18 @@
       coinsStudents = studentsList || [];
       coinsPerStudent = {};
       (ledgerRows || []).forEach((row) => {
-        if (row.channel === 'adjust') return;
         if (!row.id || Number(row.id) < COINS_LEDGER_FROM) return;
         const sid = row.student_id;
         if (sid == null) return;
         const rec = (coinsPerStudent[sid] = coinsPerStudent[sid] || { given: 0, spent: 0 });
         const d = Number(row.delta) || 0;
         // Remove rows carry negative deltas (awards reversed), so summing them
-        // nets out duplicates instead of re-adding them.
-        if (row.channel === 'award' || row.channel === 'remove') rec.given += d;
-        else if (row.channel === 'store' || row.channel === 'bookstall') rec.spent += d;
+        // nets out duplicates instead of re-adding them. Adjust rows are manual
+        // coin credits/debits and count towards given.
+        if (row.channel === 'award' || row.channel === 'remove' || row.channel === 'adjust')
+          rec.given += d;
+        else if (row.channel === 'store' || row.channel === 'book' || row.channel === 'bookstall')
+          rec.spent += d;
       });
       renderCoinsAnalytics();
     } catch (err) {
