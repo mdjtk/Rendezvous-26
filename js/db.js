@@ -297,7 +297,7 @@
   }
 
   // Relative +/− adjustment of a team's points (admin). Floored at 0.
-  async function adjustTeamPoints(id, delta) {
+  async function adjustTeamPoints(id, delta, reason) {
     requireConfigured();
     const d = Math.floor(+delta || 0);
     if (!d) return getTeams();
@@ -311,6 +311,7 @@
     if (!team) throw new Error('Team not found');
     const next = Math.max(0, Number(team.points) + d);
     await sbUpdate('teams', id, { points: next, updated_at: new Date().toISOString() });
+    await pushAdjust('team', id, team.name, 'points', d, reason || 'Team points adjustment');
     audit('team.points.adjust', 'teams', id, team.name, { delta: d, from: team.points, to: next });
     return getTeams();
   }
@@ -1005,6 +1006,40 @@
     });
   }
 
+  /* ------------------ manual adjustments history ------------------ */
+
+  // Newest-first log of every +/− tweak made from the admin points & coins
+  // controller. Lives in rv26_adjust_history (supabase/adjust_history.sql)
+  // because team adjustments have no student row to attach to the ledger.
+  async function getAdjustHistory(limit) {
+    requireConfigured();
+    return sbQuery('rv26_adjust_history', {
+      order: 'created_at',
+      ascending: false,
+      limit: limit == null ? 100 : Number(limit),
+    });
+  }
+
+  // Best-effort: a history log must never block the change it records, and
+  // the migration may not be applied on every copy of the database yet.
+  async function pushAdjust(scope, targetId, targetName, kind, delta, reason) {
+    let actor = 'staff';
+    try {
+      actor = window.sessionStorage.getItem('rv26_role') || 'staff';
+    } catch (e) { /* ignore */ }
+    try {
+      await sbInsert('rv26_adjust_history', {
+        scope: scope === 'team' ? 'team' : 'student',
+        target_id: targetId != null ? Number(targetId) : null,
+        target_name: targetName != null ? String(targetName) : null,
+        kind: kind === 'coins' ? 'coins' : 'points',
+        delta: Math.floor(+delta || 0),
+        reason: reason ? cleanName(reason) : null,
+        actor,
+      });
+    } catch (e) { /* silent */ }
+  }
+
   /* --------------------- audit + owner reads --------------------- */
 
   // Owner-visible record of who changed what. Best-effort: audit must never
@@ -1129,16 +1164,18 @@
     if (!d) return withCoinsUpdate(studentId, (c) => c);
     const updated = await withCoinsUpdate(studentId, (c) => c + d);
     await pushLedger(studentId, d, cleanName(reason) || 'Adjustment', 'adjust');
-    audit('coins.adjust', 'students', studentId, cleanName(reason) || 'Adjustment', { delta: d });
+    await pushAdjust('student', studentId, updated && updated.name, 'coins', d, reason);
+    audit('coins.adjust', 'students', studentId, updated && updated.name, { delta: d });
     return updated;
   }
 
   // Relative +/− adjustment of an individual champion's points (admin). Floored at 0.
-  async function adjustStudentPoints(id, delta) {
+  async function adjustStudentPoints(id, delta, reason) {
     const d = Math.floor(+delta || 0);
     if (!d) return withPointsUpdate(id, (p) => p);
     const updated = await withPointsUpdate(id, (p) => Math.max(0, Number(p) + d));
-    audit('points.adjust', 'students', id, null, { delta: d });
+    await pushAdjust('student', id, updated && updated.name, 'points', d, reason || 'Points adjustment');
+    audit('points.adjust', 'students', id, updated && updated.name, { delta: d });
     return updated;
   }
 
@@ -1296,6 +1333,7 @@
     getStudentByName,
     getLedger,
     getLedgerAll,
+    getAdjustHistory,
     queryTable,
     audit,
     awardCoins,

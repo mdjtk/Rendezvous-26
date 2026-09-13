@@ -687,6 +687,46 @@
                     </div>
                   </div>
                 </div>
+
+              <div class="bg-surface-container-low border border-white/5 rounded-xl p-space-md space-y-space-md">
+                <div class="flex flex-wrap items-center gap-space-sm">
+                  <div class="flex-1 min-w-0">
+                    <p class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider block">
+                      Manual adjustments history
+                    </p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+                      Every +/− tweak made from this controller, newest first.
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-space-xs">
+                    <select
+                      id="adjustHistScope"
+                      class="h-10 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 transition-all"
+                    >
+                      <option value="">All scope</option>
+                      <option value="team">Team</option>
+                      <option value="student">Student</option>
+                    </select>
+                    <select
+                      id="adjustHistKind"
+                      class="h-10 bg-surface-container-high/70 border border-white/10 rounded-lg px-space-md text-on-background font-body-md text-body-md focus:outline-none focus:border-primary/60 transition-all"
+                    >
+                      <option value="">All types</option>
+                      <option value="points">Points</option>
+                      <option value="coins">Coins</option>
+                    </select>
+                    <button
+                      type="button"
+                      id="adjustHistRefresh"
+                      title="Refresh history"
+                      class="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-surface-container-high/70 text-on-surface-variant hover:text-on-background transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-[18px]">refresh</span>
+                    </button>
+                  </div>
+                </div>
+                <p id="adjustHistCount" class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest"></p>
+                <ul id="adjustHistList" class="space-y-space-xs"></ul>
               </div>
             </div>
 
