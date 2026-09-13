@@ -3274,6 +3274,14 @@ nav[aria-label="Primary"] > div.grid {
   right: 0.75rem;
 }
 
+.champ-board-card {
+  max-width: 42rem;
+}
+
+.champ-board-body {
+  margin-top: 1.25rem;
+}
+
 .sd-head {
   display: flex;
   align-items: center;

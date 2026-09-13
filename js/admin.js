@@ -1602,6 +1602,160 @@
     }
   }
 
+  /* --------------- publish individual champions: full rank board -------------- */
+
+  const publishChampBtn = document.getElementById('publishChampBtn');
+
+  // Shared ranks (competition style): tied points share a rank, next skips.
+  function championSharedRanks(list) {
+    const ranks = new Array(list.length);
+    let prevPts = null;
+    let prevRank = 0;
+    list.forEach((s, i) => {
+      if (prevPts === null || (s.points || 0) < prevPts) prevRank = i + 1;
+      ranks[i] = prevRank;
+      prevPts = s.points || 0;
+    });
+    return ranks;
+  }
+
+  function buildChampBoard(fresh, beforeOpen) {
+    const scoring = (fresh || []).filter((s) => (s.points || 0) > 0);
+    if (scoring.length === 0) {
+      return UI.emptyState({
+        title: 'No individual champions yet',
+        hint: 'Individual champion points are awarded automatically when results are published.',
+        icon: 'points',
+      });
+    }
+
+    const groups = new Map();
+    scoring.forEach((s) => {
+      const key = s.category || '—';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(s);
+    });
+
+    const buckets = [...groups.entries()]
+      .map(([key, list]) => ({
+        key,
+        list: [...list].sort(
+          (a, b) =>
+            (b.points || 0) - (a.points || 0) ||
+            String(a.name || '').localeCompare(String(b.name || ''))
+        ),
+      }))
+      .sort(
+        (a, b) =>
+          championCatRank(a.key) - championCatRank(b.key) ||
+          String(a.key).localeCompare(String(b.key))
+      );
+
+    const sec = document.createElement('div');
+    sec.className = 'tp-block';
+    sec.innerHTML =
+      '<div class="tp-block-label"><span class="material-symbols-outlined">leaderboard</span> Publish Individual Champions</div>';
+
+    const tbl = document.createElement('div');
+    tbl.className = 'tp-table';
+
+    const th = document.createElement('div');
+    th.className = 'tp-th';
+    th.innerHTML = '<span>#</span><span>Student</span><span>Category</span><span class="right">Points</span>';
+    tbl.appendChild(th);
+
+    buckets.forEach((b) => {
+      const ranks = championSharedRanks(b.list);
+      const head = document.createElement('div');
+      head.className = 'tp-cat';
+      head.innerHTML =
+        '<span>' + esc(b.key) + '</span>' +
+        '<span>' + b.list.length + ' scoring</span>';
+      tbl.appendChild(head);
+
+      b.list.forEach((s, i) => {
+        const pos = ranks[i];
+        const lead = pos === 1;
+        const row = document.createElement('div');
+        row.className = 'tp-tr' + (lead ? ' is-1' : '');
+        row.setAttribute('role', 'button');
+        row.tabIndex = 0;
+        row.innerHTML =
+          '<span class="tp-rank">' + (lead ? medalSvg('#a3e635') : esc(pos)) + '</span>' +
+          '<span class="tp-team">' +
+          '<span class="tp-name">' + esc(s.name) + '</span>' +
+          '<button type="button" class="champ-info" data-act="info" title="Student profile" aria-label="Profile for ' + esc(s.name) + '">' +
+          '<svg viewBox="0 0 24 24" style="width:.9rem;height:.9rem" stroke="currentColor" stroke-width="1.8" fill="none"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>' +
+          '</button>' +
+          (s.team ? '<span class="tp-crown-sm material-symbols-outlined" style="font-size:14px" title="' + esc(s.team) + '">group</span>' : '') +
+          '</span>' +
+          '<span class="tp-pts"><b>' + esc(s.category || '—') + '</b></span>' +
+          '<span class="tp-pts champ-pts right"><b>' + esc(s.points) + '</b></span>';
+        const open = () => {
+          if (beforeOpen) beforeOpen();
+          openStudentDetail(s);
+        };
+        const infoBtn = row.querySelector('[data-act="info"]');
+        if (infoBtn) {
+          infoBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            open();
+          });
+        }
+        row.addEventListener('click', open);
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        });
+        tbl.appendChild(row);
+      });
+    });
+
+    sec.appendChild(tbl);
+    return sec;
+  }
+
+  async function openChampBoard() {
+    const modal = document.createElement('div');
+    modal.className = 'student-modal';
+    modal.innerHTML =
+      '<div class="student-modal-card champ-board-card">' +
+      '  <button type="button" class="round-btn sd-close" aria-label="Close">' +
+      '    <svg viewBox="0 0 24 24" style="width:1.25rem;height:1.25rem" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+      '  </button>' +
+      '  <div class="sd-head">' +
+      '    <div class="sd-meta">' +
+      '      <span class="sd-name">Publish Individual Champions</span>' +
+      '      <span class="sd-line">Full rank board by category</span>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="champ-board-body">' +
+      '    <div class="sd-empty">Loading\u2026</div>' +
+      '  </div>' +
+      '</div>';
+    modal.querySelector('.sd-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+    document.body.appendChild(modal);
+    const body = modal.querySelector('.champ-board-body');
+    try {
+      const fresh = await DB.getStudents();
+      const node = buildChampBoard(fresh, () => modal.remove());
+      if (!modal.isConnected) return;
+      body.innerHTML = '';
+      body.appendChild(node);
+    } catch (err) {
+      if (modal.isConnected) {
+        body.innerHTML = '<div class="sd-empty is-error">Could not load individual champions.</div>';
+      }
+    }
+  }
+
+  if (publishChampBtn) publishChampBtn.addEventListener('click', openChampBoard);
+
   /* -------------------------- festivita: students -------------------------- */
 
   const studentList = document.getElementById('studentList');
