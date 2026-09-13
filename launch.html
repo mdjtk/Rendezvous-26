@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Launch — Rendezvous '26</title>
+  <style>
+    :root {
+      --bg: #051910;
+      --lime: #a3e635;
+      --lime-soft: rgba(163, 230, 53, 0.35);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(163, 230, 53, 0.08), transparent 60%),
+        radial-gradient(900px 500px at 85% 110%, rgba(42, 107, 41, 0.18), transparent 60%),
+        #051910;
+      pointer-events: none;
+    }
+
+    .launch {
+      position: relative;
+      text-align: center;
+      animation: rise 0.9s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+    }
+
+    .launch a {
+      display: inline-block;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.35s ease;
+    }
+
+    .launch a:hover {
+      transform: scale(1.06);
+    }
+
+    .launch a:hover .logo-wrap {
+      box-shadow: 0 0 60px var(--lime-soft);
+    }
+
+    .launch a:active {
+      transform: scale(1.02);
+    }
+
+    .logo-wrap {
+      width: 11rem;
+      height: 11rem;
+      margin: 0 auto 1.75rem;
+      padding: 1rem;
+      border-radius: 1.5rem;
+      background: rgba(10, 40, 22, 0.85);
+      border: 1px solid rgba(163, 230, 53, 0.25);
+      box-shadow: 0 0 34px var(--lime-soft), inset 0 0 24px rgba(163, 230, 53, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: box-shadow 0.35s ease;
+      animation: pulse 2.6s ease-in-out infinite;
+    }
+
+    .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .wordmark {
+      height: 2.4rem;
+      object-fit: contain;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--lime);
+      margin-bottom: 0.35rem;
+    }
+
+    p {
+      font-size: 0.8125rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(208, 215, 209, 0.75);
+      margin-bottom: 1.25rem;
+    }
+
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7125rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--lime);
+      opacity: 0.85;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        box-shadow: 0 0 26px var(--lime-soft), inset 0 0 24px rgba(163, 230, 53, 0.08);
+      }
+      50% {
+        box-shadow: 0 0 54px var(--lime-soft), inset 0 0 30px rgba(163, 230, 53, 0.14);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .launch,
+      .logo-wrap {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+
+  <main class="launch">
+    <a href="https://baithulizzalifefestival.vercel.app/" aria-label="Open Rendezvous '26 festival site">
+      <div class="logo-wrap">
+        <img src="assets/img/Logo-.png" alt="Rendezvous '26 logo" />
+      </div>
+      <img class="wordmark" src="assets/img/rendezvous.webp" alt="Rendezvous '26" />
+      <h1>Baithul Izza Life Festival</h1>
+      <p>Decoding Phytolore</p>
+      <span class="hint">
+        <span aria-hidden="true">↗</span> Click the logo to launch
+      </span>
+    </a>
+  </main>
+</body>
+</html>
