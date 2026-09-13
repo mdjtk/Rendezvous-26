@@ -68,28 +68,85 @@
   /*
    * Exchange a PIN for a short-lived JWT via the /verify-pin Edge Function.
    * On success the token is stored and auto-attached to every write.
+   * If the edge runtime is unreachable (cold-start/outage), falls back to
+   * POST /rest/v1/rpc/rv26_login, a server-side SQL twin of verify-pin.
    */
   async function verifyPin(pin) {
     requireConfigured();
-    const res = await fetch(`${C().SUPABASE_URL}/functions/v1/verify-pin`, {
-      method: 'POST',
-      headers: { apikey: C().SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: String(pin || '').trim() }),
-    });
+    const pinStr = String(pin || '').trim();
+    let res = null;
     let body = {};
+    let fetchErr = null;
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 8000);
     try {
-      body = await res.json();
+      res = await fetch(`${C().SUPABASE_URL}/functions/v1/verify-pin`, {
+        method: 'POST',
+        headers: { apikey: C().SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pinStr }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(to);
+      try {
+        body = await res.json();
+      } catch (e) {
+        body = {};
+      }
     } catch (e) {
-      body = {};
+      clearTimeout(to);
+      fetchErr = e;
     }
-    if (!res.ok) {
-      const err = new Error((body && body.error) || 'Sign in failed (' + res.status + ')');
-      err.status = res.status;
+    const unreachable =
+      !!fetchErr || (res && [502, 503, 504, 546].includes(res.status));
+    if (!unreachable) {
+      if (!res.ok) {
+        const err = new Error((body && body.error) || 'Sign in failed (' + res.status + ')');
+        err.status = res.status;
+        throw err;
+      }
+      if (!body.token) throw new Error('Sign in failed - unexpected response');
+      setSessionToken(body.token);
+      return { role: body.role, expiresAt: body.expires_at };
+    }
+    /* SQL fallback: rv26_login mints the same JWT server-side. */
+    let rpc = null;
+    let rpcBody = {};
+    const rpcCtrl = new AbortController();
+    const rpcTo = setTimeout(() => rpcCtrl.abort(), 10000);
+    try {
+      rpc = await fetch(`${C().SUPABASE_URL}/rest/v1/rpc/rv26_login`, {
+        method: 'POST',
+        headers: {
+          apikey: C().SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + C().SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pin: pinStr }),
+        signal: rpcCtrl.signal,
+      });
+      clearTimeout(rpcTo);
+      try {
+        rpcBody = await rpc.json();
+      } catch (e) {
+        rpcBody = {};
+      }
+    } catch (e) {
+      clearTimeout(rpcTo);
+      const err = new Error(
+        fetchErr ? fetchErr.message : 'Server unreachable - supervisor access is closed. Check connectivity.'
+      );
+      err.status = 0;
       throw err;
     }
-    if (!body.token) throw new Error('Sign in failed â€” unexpected response');
-    setSessionToken(body.token);
-    return { role: body.role, expiresAt: body.expires_at };
+    if (!rpcBody || !rpcBody.token) {
+      const err = new Error(
+        (rpcBody && rpcBody.error) || 'Sign in failed (' + (rpc ? rpc.status : 0) + ')'
+      );
+      err.status = (rpcBody && rpcBody.status) || (rpc ? rpc.status : 0);
+      throw err;
+    }
+    setSessionToken(rpcBody.token);
+    return { role: rpcBody.role, expiresAt: rpcBody.expires_at };
   }
 
   async function sbGet(table, orderCol, ascending) {
