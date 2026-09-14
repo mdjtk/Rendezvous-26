@@ -2805,7 +2805,13 @@ h4 {
   position: relative;
   display: flex;
   min-height: 100vh;
-  background: #051910;
+  background-color: #051910;
+  background-image:
+    radial-gradient(ellipse 85% 55% at 78% -8%, rgba(163, 230, 53, 0.07), transparent 58%),
+    radial-gradient(ellipse 70% 55% at 15% 108%, rgba(130, 209, 40, 0.08), transparent 62%),
+    radial-gradient(ellipse 100% 70% at 50% 118%, rgba(6, 35, 29, 0.55), transparent 70%),
+    radial-gradient(ellipse 130% 85% at 50% -25%, rgba(12, 52, 44, 0.7), transparent 68%),
+    linear-gradient(50deg, #030e03 0%, #030e03 42%, #1c5417 100%, #1c5417 100%);
   color: #ffffff;
   font-family: var(--font-body);
   print-color-adjust: exact;
@@ -2879,6 +2885,20 @@ h4 {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
+}
+
+.export-print-table thead {
+  display: table-header-group;
+}
+
+.export-print-table tbody.ep-group {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.export-print-table tbody tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .export-print-table thead th {

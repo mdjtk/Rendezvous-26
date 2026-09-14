@@ -367,7 +367,7 @@
     const body = groups
       .map((g) => {
         const span = g.items.length > 1 ? ' rowspan="' + g.items.length + '"' : '';
-        return g.items
+        const rows = g.items
           .map((r, i) => {
             const eventTd =
               i === 0
@@ -390,9 +390,10 @@
             );
           })
           .join('');
+        return '<tbody class="ep-group">' + rows + '</tbody>';
       })
       .join('');
-    return '<table class="export-print-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
+    return '<table class="export-print-table"><thead><tr>' + head + '</tr></thead>' + body + '</table>';
   }
 
   function printPDF() {
