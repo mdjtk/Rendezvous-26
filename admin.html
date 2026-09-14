@@ -781,6 +781,10 @@
                     <span id="coinsSpentStat" class="font-headline-lg text-headline-lg font-bold text-error leading-none">0</span>
                     <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest mb-space-2xs">Coins</span>
                   </div>
+                  <div class="mt-space-xs flex flex-wrap items-center gap-space-2xs">
+                    <span class="coins-split is-store">Store −<span id="coinsStoreStat">0</span></span>
+                    <span class="coins-split is-book">Bookstall −<span id="coinsBookStat">0</span></span>
+                  </div>
                 </div>
                 <div class="rounded-xl bg-surface-container-low border border-white/5 p-space-md">
                   <div class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">
@@ -816,7 +820,32 @@
                   >
                   <span id="coinsStudentCount" class="font-body-sm text-body-sm text-on-surface-variant"></span>
                 </div>
+                <div class="flex flex-wrap items-center gap-space-xs mb-space-sm">
+                  <select id="coinsStudentCatFilter" class="coins-filter" aria-label="Filter by category">
+                    <option value="">All categories</option>
+                    <option>Minor</option>
+                    <option>Premier</option>
+                    <option>Sub junior</option>
+                    <option>General</option>
+                  </select>
+                  <select id="coinsStudentChanFilter" class="coins-filter" aria-label="Filter by channel">
+                    <option value="">Store + Bookstall</option>
+                    <option value="store">Store</option>
+                    <option value="book">Bookstall</option>
+                  </select>
+                </div>
                 <ul id="coinsStudentsList" class="space-y-space-xs"></ul>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-wider"
+                    >Store &amp; bookstall history</span
+                  >
+                  <span id="coinsTxCount" class="font-body-sm text-body-sm text-on-surface-variant"></span>
+                </div>
+                <div id="coinsTxSummary" class="mb-space-xs flex flex-wrap gap-space-2xs"></div>
+                <ul id="coinsTxList" class="space-y-space-xs"></ul>
               </div>
             </div>
 

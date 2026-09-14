@@ -124,6 +124,32 @@
               <option value="">All programmes</option>
             </select>
           </div>
+          <div id="export-section" class="export-section">
+            <div class="export-head">
+              <span class="export-title">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+                Export results
+              </span>
+              <span id="export-count" class="export-count"></span>
+            </div>
+            <div class="export-actions">
+              <button type="button" class="chip" data-export="csv">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
+                Download CSV
+              </button>
+              <button type="button" class="chip" data-export="copy">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">content_copy</span>
+                Copy
+              </button>
+              <button type="button" class="chip" data-export="pdf">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">picture_as_pdf</span>
+                Download PDF
+              </button>
+            </div>
+            <p class="export-hint">
+              Exports the currently visible results — search, category, and programme filters apply.
+            </p>
+          </div>
           <div id="content"></div>
         </div>
       </section>

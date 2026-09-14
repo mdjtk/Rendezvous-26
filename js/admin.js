@@ -1217,37 +1217,50 @@
   const coinsCatFilter = document.getElementById('coinsCatFilter');
   const coinsGivenStat = document.getElementById('coinsGivenStat');
   const coinsSpentStat = document.getElementById('coinsSpentStat');
+  const coinsStoreStat = document.getElementById('coinsStoreStat');
+  const coinsBookStat = document.getElementById('coinsBookStat');
   const coinsCoveredStat = document.getElementById('coinsCoveredStat');
   const coinsBalanceStat = document.getElementById('coinsBalanceStat');
   const coinsByCategory = document.getElementById('coinsByCategory');
   const coinsStudentsList = document.getElementById('coinsStudentsList');
   const coinsStudentCount = document.getElementById('coinsStudentCount');
+  const coinsTxList = document.getElementById('coinsTxList');
+  const coinsTxCount = document.getElementById('coinsTxCount');
+  const coinsTxSummary = document.getElementById('coinsTxSummary');
+  const coinsStudentCatFilter = document.getElementById('coinsStudentCatFilter');
+  const coinsStudentChanFilter = document.getElementById('coinsStudentChanFilter');
 
   let coinsStudents = [];
   let coinsPerStudent = {};
+  let coinsPurchases = [];
 
   async function loadCoinsAnalytics() {
     try {
       const [ledgerRows, studentsList] = await Promise.all([DB.getLedgerAll(), DB.getStudents()]);
       coinsStudents = studentsList || [];
       coinsPerStudent = {};
+      coinsPurchases = [];
       (ledgerRows || []).forEach((row) => {
         if (!row.id || Number(row.id) < COINS_LEDGER_FROM) return;
         const sid = row.student_id;
         if (sid == null) return;
-        const rec = (coinsPerStudent[sid] = coinsPerStudent[sid] || { given: 0, spent: 0 });
+        const rec = (coinsPerStudent[sid] = coinsPerStudent[sid] || { given: 0, spent: 0, store: 0, book: 0 });
         const d = Number(row.delta) || 0;
         // Remove rows carry negative deltas (awards reversed), so summing them
         // nets out duplicates instead of re-adding them. Adjust rows are manual
         // coin credits/debits and count towards given.
         if (row.channel === 'award' || row.channel === 'remove' || row.channel === 'adjust')
           rec.given += d;
-        else if (row.channel === 'store' || row.channel === 'book' || row.channel === 'bookstall')
+        else if (row.channel === 'store' || row.channel === 'book' || row.channel === 'bookstall') {
           rec.spent += d;
+          if (row.channel === 'store') rec.store += d;
+          else rec.book += d;
+          coinsPurchases.push(row);
+        }
       });
       renderCoinsAnalytics();
     } catch (err) {
-      [coinsGivenStat, coinsSpentStat, coinsCoveredStat, coinsBalanceStat].forEach((el) => {
+      [coinsGivenStat, coinsSpentStat, coinsCoveredStat, coinsBalanceStat, coinsStoreStat, coinsBookStat].forEach((el) => {
         if (el) el.textContent = '\u2014';
       });
       if (coinsStudentsList) {
@@ -1267,8 +1280,8 @@
 
   function coinsReport(studentList) {
     const rows = studentList.map((s) => {
-      const rec = coinsPerStudent[s.id] || { given: 0, spent: 0 };
-      return { ...s, given: rec.given, spent: Math.abs(rec.spent), balance: Number(s.coins) || 0 };
+      const rec = coinsPerStudent[s.id] || { given: 0, spent: 0, store: 0, book: 0 };
+      return { ...s, given: rec.given, spent: Math.abs(rec.spent), store: Math.abs(rec.store), book: Math.abs(rec.book), balance: Number(s.coins) || 0 };
     });
     // Only surface ledger entries whose student no longer exists, and only in
     // the unfiltered view. When a category filter is active the excluded
@@ -1284,6 +1297,8 @@
             team: null,
             given: rec.given,
             spent: Math.abs(rec.spent),
+            store: Math.abs(rec.store),
+            book: Math.abs(rec.book),
             balance: 0,
           });
         }
@@ -1296,14 +1311,19 @@
     const rows = coinsReport(coinsFilteredStudents());
     const totalGiven = rows.reduce((acc, r) => acc + r.given, 0);
     const totalSpent = rows.reduce((acc, r) => acc + r.spent, 0);
+    const totalStore = rows.reduce((acc, r) => acc + r.store, 0);
+    const totalBook = rows.reduce((acc, r) => acc + r.book, 0);
     const totalBalance = rows.reduce((acc, r) => acc + r.balance, 0);
     const covered = rows.filter((r) => r.given > 0 || r.spent > 0);
     if (coinsGivenStat) coinsGivenStat.textContent = String(totalGiven);
     if (coinsSpentStat) coinsSpentStat.textContent = String(totalSpent);
+    if (coinsStoreStat) coinsStoreStat.textContent = String(totalStore);
+    if (coinsBookStat) coinsBookStat.textContent = String(totalBook);
     if (coinsBalanceStat) coinsBalanceStat.textContent = String(totalBalance);
     if (coinsCoveredStat) coinsCoveredStat.textContent = String(covered.length);
     renderCoinsByCategory(rows);
     renderCoinsStudents(covered);
+    renderCoinsHistory(rows);
   }
 
   function renderCoinsByCategory(rows) {
@@ -1311,13 +1331,15 @@
     const byCat = {};
     rows.forEach((r) => {
       const c = COIN_CATEGORIES.includes(r.category) ? r.category : 'Other';
-      if (!byCat[c]) byCat[c] = { given: 0, spent: 0, n: 0 };
+      if (!byCat[c]) byCat[c] = { given: 0, spent: 0, store: 0, book: 0, n: 0 };
       byCat[c].given += r.given;
       byCat[c].spent += r.spent;
+      byCat[c].store += r.store;
+      byCat[c].book += r.book;
       if (r.given > 0 || r.spent > 0) byCat[c].n += 1;
     });
     COIN_CATEGORIES.forEach((c) => {
-      const row = byCat[c] || { given: 0, spent: 0, n: 0 };
+      const row = byCat[c] || { given: 0, spent: 0, store: 0, book: 0, n: 0 };
       const card = document.createElement('div');
       card.className = 'rounded-lg bg-surface-container-high/50 border border-white/5 p-space-md';
       card.innerHTML =
@@ -1328,8 +1350,10 @@
         '+' +
         row.given +
         ' given &middot; \u2212' +
-        row.spent +
-        ' spent &middot; ' +
+        row.store +
+        ' store &middot; \u2212' +
+        row.book +
+        ' bookstall &middot; ' +
         row.n +
         (row.n === 1 ? ' student' : ' students') +
         '</div>';
@@ -1338,7 +1362,19 @@
   }
 
   function renderCoinsStudents(rows) {
-    const sorted = rows.slice().sort((a, b) => b.given - a.given || b.balance - a.balance);
+    const cat = coinsStudentCatFilter ? coinsStudentCatFilter.value : '';
+    const chan = coinsStudentChanFilter ? coinsStudentChanFilter.value : '';
+    const spentKey = chan === 'store' ? 'store' : chan === 'book' ? 'book' : 'spent';
+    let list = rows.slice();
+    if (cat) list = list.filter((r) => String(r.category) === cat);
+    if (chan) list = list.filter((r) => (Number(r[spentKey]) || 0) > 0);
+    const sorted = list
+      .slice()
+      .sort(
+        chan
+          ? (a, b) => b[spentKey] - a[spentKey] || b.given - a.given || b.balance - a.balance
+          : (a, b) => b.given - a.given || b.balance - a.balance
+      );
     coinsStudentCount.textContent = sorted.length
       ? sorted.length + (sorted.length === 1 ? ' student' : ' students')
       : '';
@@ -1347,12 +1383,16 @@
       coinsStudentsList.appendChild(
         UI.emptyState({
           title: 'No activity yet',
-          hint: 'Coins are given from result awards and spent at the store.',
+          hint: chan
+            ? 'No student has ' + (chan === 'store' ? 'store' : 'bookstall') + ' spend in this view.'
+            : 'Coins are given from result awards and spent at the store.',
           icon: 'points',
         })
       );
       return;
     }
+    const spendTitle =
+      chan === 'store' ? 'Coins spent (store)' : chan === 'book' ? 'Coins spent (bookstall)' : 'Coins spent (store + bookstall)';
     sorted.forEach((s, i) => {
       const li = document.createElement('li');
       li.className = 'admin-team';
@@ -1369,8 +1409,10 @@
         '<span class="coins-metric is-given" title="Coins given (awards minus removals)">+' +
         esc(s.given) +
         '</span>' +
-        '<span class="coins-metric is-spent" title="Coins spent (store + bookstall)">\u2212' +
-        esc(s.spent) +
+        '<span class="coins-metric is-spent" title="' +
+        spendTitle +
+        '">\u2212' +
+        esc(Number(s[spentKey]) || 0) +
         '</span>' +
         '<span class="admin-team-pts" title="Current coin balance">' +
         esc(s.balance) +
@@ -1384,7 +1426,73 @@
     });
   }
 
+  const SPEND_CHANNELS = {
+    store: { label: 'Store', cls: 'is-store' },
+    book: { label: 'Bookstall', cls: 'is-book' },
+    bookstall: { label: 'Bookstall', cls: 'is-book' },
+  };
+
+  function spendChannel(r) {
+    return SPEND_CHANNELS[String(r.channel)] || SPEND_CHANNELS.store;
+  }
+
+  function renderCoinsHistory(rows) {
+    const ids = new Set(rows.map((r) => String(r.id)));
+    const tx = coinsPurchases.filter((r) => ids.has(String(r.student_id)));
+    coinsTxCount.textContent = tx.length ? tx.length + (tx.length === 1 ? ' entry' : ' entries') : '';
+    let storeN = 0;
+    let bookN = 0;
+    tx.forEach((r) => {
+      if (spendChannel(r) === SPEND_CHANNELS.store) storeN += 1;
+      else bookN += 1;
+    });
+    coinsTxSummary.innerHTML =
+      (storeN ? '<span class="coins-split is-store">Store ' + storeN + '</span>' : '') +
+      (bookN ? '<span class="coins-split is-book">Bookstall ' + bookN + '</span>' : '');
+    coinsTxList.innerHTML = '';
+    if (!tx.length) {
+      coinsTxList.appendChild(
+        UI.emptyState({
+          title: 'No purchases yet',
+          hint: 'Store and bookstall purchases will appear here.',
+          icon: 'points',
+        })
+      );
+      return;
+    }
+    tx.forEach((r) => {
+      const ch = spendChannel(r);
+      const buyer = coinsStudents.find((x) => String(x.id) === String(r.student_id));
+      const li = document.createElement('li');
+      li.className = 'ledger-row';
+      li.innerHTML =
+        '<span class="ledger-delta is-sub">\u2212' +
+        Math.abs(Number(r.delta) || 0) +
+        '</span>' +
+        '<span class="ledger-reason">' +
+        esc(buyer ? buyer.name : 'Student #' + r.student_id) +
+        ' \u00b7 ' +
+        esc(r.reason || 'Purchase') +
+        '</span>' +
+        '<span class="ledger-tag ' +
+        ch.cls +
+        '">' +
+        ch.label +
+        '</span>' +
+        '<span class="ledger-date">' +
+        esc(ledgerDate(r)) +
+        '</span>';
+      if (buyer) {
+        li.classList.add('is-clickable');
+        li.addEventListener('click', () => openStudentDetail(buyer));
+      }
+      coinsTxList.appendChild(li);
+    });
+  }
+
   if (coinsCatFilter) coinsCatFilter.addEventListener('change', renderCoinsAnalytics);
+  if (coinsStudentCatFilter) coinsStudentCatFilter.addEventListener('change', renderCoinsAnalytics);
+  if (coinsStudentChanFilter) coinsStudentChanFilter.addEventListener('change', renderCoinsAnalytics);
 
   /* --------------------- individual champions (champ) --------------------- */
 
