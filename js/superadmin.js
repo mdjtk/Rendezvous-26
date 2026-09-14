@@ -613,8 +613,29 @@
     chatHistory = chatHistory.slice(-20);
     pushBadge(typingEl());
 
-    try {
-      if (source === 'gemini') {
+    async function viaBridge(tag) {
+      const res = await fetch(`${RELAY}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1) }),
+      });
+      let body;
+      try { body = await res.json(); } catch (e) { body = {}; }
+      if (!res.ok) throw new Error((body && body.error) || 'Bridge error (' + res.status + ')');
+      chatHistory.push({ role: 'model', content: body.reply || '' });
+      renderBot(body.reply || '(no reply)', tag);
+    }
+
+    function botError(msgText) {
+      chatHistory.pop();
+      const t = document.getElementById('typingRow');
+      if (t) t.remove();
+      toast('Bot error: ' + msgText, 5000);
+      pushBadge(`<div class="msg bot"><div class="who" style="--acc: var(--red)">AI</div><div class="bubble">${escapeHtml(msgText)}<div class="source">error</div></div></div>`);
+    }
+
+    if (source === 'gemini') {
+      try {
         const res = await fetch(`${C.SUPABASE_URL}/functions/v1/chat`, {
           method: 'POST',
           headers: {
@@ -623,34 +644,26 @@
             Authorization: 'Bearer ' + (DB.getSessionToken() || ''),
           },
           body: JSON.stringify({ messages: chatHistory }),
+          signal: AbortSignal.timeout(10000),
         });
         let body;
         try { body = await res.json(); } catch (e) { body = {}; }
         if (!res.ok) throw new Error((body && body.error) || 'Chat failed (' + res.status + ')');
         chatHistory.push({ role: 'model', content: body.reply || '' });
         renderBot(body.reply || '(no reply)', 'gemini');
-      } else {
-        const res = await fetch(`${RELAY}/message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1) }),
-        });
-        let body;
-        try { body = await res.json(); } catch (e) { body = {}; }
-        if (!res.ok) throw new Error((body && body.error) || 'Bridge error (' + res.status + ')');
-        chatHistory.push({ role: 'model', content: body.reply || '' });
-        renderBot(body.reply || '(no reply)', 'opencode · local');
+      } catch (e) {
+        const cloudErr = e.message || String(e);
+        try {
+          await viaBridge('opencode · local (auto-fallback)');
+        } catch (e2) {
+          botError('Cloud chat is unreachable (' + cloudErr + '). The local bridge also did not respond — start it with npm run bridge and resend.');
+        }
       }
-    } catch (e) {
-      const err = e.message || String(e);
-      chatHistory.pop();
-      const t = document.getElementById('typingRow');
-      if (t) t.remove();
-      toast('Bot error: ' + err, 5000);
-      if (source === 'local') {
-        pushBadge(`<div class="msg bot"><div class="who" style="--acc: var(--red)">AI</div><div class="bubble">The local bridge is offline. Start it with <b>npm run bridge</b> on your PC, or switch to ☁ Gemini.<div class="source">error</div></div></div>`);
-      } else {
-        pushBadge(`<div class="msg bot"><div class="who" style="--acc: var(--red)">AI</div><div class="bubble">${escapeHtml(err)}<div class="source">error</div></div></div>`);
+    } else {
+      try {
+        await viaBridge('opencode · local');
+      } catch (e) {
+        botError(e.message || String(e));
       }
     }
   }

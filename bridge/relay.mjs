@@ -60,7 +60,7 @@ function runOpencode(message, history) {
 
     let child;
     try {
-      child = spawn('opencode', ['run', prompt], {
+      child = spawn('opencode', ['run', '--auto', prompt], {
         cwd: process.cwd(),
         stdio: ['ignore', 'pipe', 'pipe'],
         env: process.env,
